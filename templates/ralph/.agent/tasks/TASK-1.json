@@ -1,0 +1,30 @@
+{
+  "id": "TASK-1",
+  "title": "Verify project prerequisites and access",
+  "category": "setup",
+  "description": "Check the agreed Brief and the prerequisites needed to build and verify this slice.",
+  "acceptanceCriteria": [
+    "{{Required tools, access, and test data are verified, with any blocker recorded in Evidence}}",
+    "No secrets or private note contents appear in committed artifacts."
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "description": "Read the Brief and identify required setup",
+      "details": "Read .agent/prd/PRD.md. Use its Prerequisites field; record only relevant tools, services, environment variable names, and test data.",
+      "pass": false
+    },
+    {
+      "step": 2,
+      "description": "Verify: prerequisites",
+      "details": "{{List exact safe checks and their expected results; record unavailable access without exposing secret values}}",
+      "pass": false
+    }
+  ],
+  "dependencies": [],
+  "estimatedComplexity": "low",
+  "technicalNotes": [
+    "Must not: start feature work while a required prerequisite is blocked.",
+    "Must not: copy secret values into task files, logs, or evidence."
+  ]
+}

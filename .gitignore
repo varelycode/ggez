@@ -1,0 +1,33 @@
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Local secrets and personal data
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+local-data/
+private-exports/
+
+# Build and dependency output
+.build/
+DerivedData/
+build/
+dist/
+node_modules/
+.next/
+coverage/
+*.xcuserstate
+xcuserdata/
+
+# Runtime logs
+*.log
+
+# Python helper output
+__pycache__/
+*.pyc

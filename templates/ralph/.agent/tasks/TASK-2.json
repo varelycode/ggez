@@ -1,0 +1,31 @@
+{
+  "id": "TASK-2",
+  "title": "{{One bounded feature outcome}}",
+  "category": "functional",
+  "description": "{{Expected behavior and the specific Brief acceptance checks covered}}",
+  "acceptanceCriteria": [
+    "{{Observable success result}}",
+    "{{Relevant failure or recovery result}}"
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "description": "{{Implement the bounded change}}",
+      "details": "{{Verified files, interfaces, and implementation guidance}}",
+      "pass": false
+    },
+    {
+      "step": 2,
+      "description": "Verify: behavior and recovery",
+      "details": "{{Exact focused checks and expected results, including native Mac checks where relevant}}",
+      "pass": false
+    }
+  ],
+  "dependencies": [
+    "TASK-1"
+  ],
+  "estimatedComplexity": "low",
+  "technicalNotes": [
+    "Must not: {{Specific excluded behavior from the Brief}}"
+  ]
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "TASK-1",
+    "title": "Verify project prerequisites and access",
+    "category": "setup",
+    "specFilePath": ".agent/tasks/TASK-1.json",
+    "passes": false
+  },
+  {
+    "id": "TASK-2",
+    "title": "{{One bounded feature outcome}}",
+    "category": "functional",
+    "specFilePath": ".agent/tasks/TASK-2.json",
+    "passes": false
+  }
+]
