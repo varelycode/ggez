@@ -1,6 +1,6 @@
 # {{Feature name}} — Tasks
 
-> Edit this document as the task source. Keep TASK-N IDs stable when renaming or reordering tasks; never reuse IDs. Hidden Ralph JSON will be generated from the approved document. The converter is not implemented yet.
+> Edit this document as the task source. Keep TASK-N IDs stable when renaming or reordering tasks; never reuse IDs. Approve this document before execution. If using Ralph, generate a fixed run copy after approval; later edits become a new draft and need fresh approval before use. No manual syncing. Automatic generation is not implemented yet.
 
 **Brief:** {{Brief link}}
 

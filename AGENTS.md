@@ -14,7 +14,7 @@ ggez: a reusable workflow kit for humans and coding agents. Python 3 task helper
 - Apply no-ai-slop and i-have-adhd.
 - Keep Markdown files under 600 characters, except for the exemptions below.
 - `AGENTS.md` files have no length limit.
-- The root `README.md` has no length limit.
+- Keep this repository’s root `README.md` under 1,000 characters.
 - Everything in `templates/` is exempt from the length limit.
 
 ## Feature Workflow
@@ -50,14 +50,12 @@ The CLI is planned; these are requirements for its implementation.
 
 ## ggez Feature Layout
 
-These are requirements for the planned CLI; this repository holds kit source templates in `templates/`; installation copies them into the destination project’s `.ggez/templates/`.
+These are requirements for the planned CLI. Kit source templates live in `templates/`; installation copies them to `.ggez/templates/`.
 
-- Keep human-readable feature documents in `features/<feature-id>/`: `brief.md`, `tasks.md`, `evidence.md`, and `review.md`.
-- Keep machine records in `.ggez/features/<feature-id>/`: `tasks.json`, `tasks/`, and usage records. Keep installed kit templates in `.ggez/templates/`.
-- Use the same stable feature ID in both locations. Mirror the directories, not their contents. Human-edited `tasks.md` is the task source of truth; generate hidden Ralph JSON from it. Never overwrite it with a JSON rendering.
-- Feature creation must establish both directories. Rename and archive operations must handle both together and preserve links and records; report incomplete operations.
-- `ggez check` must validate paired directories, task IDs, references, and generated JSON freshness. Run this validation before execution; reconcile changes from Markdown and require approval of the resulting revision before running.
-- Adapt and verify Ralph paths before execution; do not assume it accepts this layout without configuration.
+- Keep editable documents in `features/<feature-id>/`: `brief.md`, `tasks.md`, `evidence.md`, and `review.md`.
+- Create the visible feature folder when starting a feature. Drafts need no corresponding machine task files or paired directory checks.
+- When an approved task set is executed through Ralph, generate its JSON index and task specs under `.ggez/features/<feature-id>/runs/<run-id>/`. Configure Ralph to consume that run's files and verify the integration before execution.
+- Keep run records and usage separate from editable documents. Retain stable feature and task IDs so results can be traced to their source; preserve historical run paths when renaming display titles.
 
 ## ggez Usage Tracking
 
@@ -70,18 +68,18 @@ These are requirements for the planned runner; usage collection is not implement
 - Show per-task time, input/output tokens, and attempt count in `ggez status`, with feature totals and coverage. Attribute Brief, task-generation, and review runs to their stage rather than inventing a task ID.
 - Report usage only for executions ggez can observe. Do not imply external chat or editor activity was measured. Keep prompts, document content, and credentials out of usage records.
 
-## ggez Task Identity and Sync
+## Approved Task Snapshots
 
-The Markdown-to-JSON converter and drift checks are planned, not implemented. `scripts/tasks.py` currently only validates and renders JSON; its output must not replace editable task documents.
+Automatic conversion and run snapshots are planned. `scripts/tasks.py` currently validates and renders JSON only; it must not overwrite editable task documents.
 
-- Match tasks by `(feature ID, task ID)`. Use stable `TASK-N` IDs in Markdown, the JSON index, and individual task specs. Do not derive identity from titles, timestamps, or queue position. Never renumber or reuse an existing ID.
-- Keep synchronization metadata in `.ggez/features/<feature-id>/sync.json`, outside Ralph's schema. Record task IDs, SHA-256 hashes of parsed task definitions, generated artifact hashes, converter version, generation time, and the approved task-set revision.
-- Hash all execution-relevant task fields, including acceptance checks, steps, verification, boundaries, and dependencies. Include queue order in the task-set revision. Ignore only presentation differences defined by the parser; fail on ambiguous or unsupported content rather than silently dropping it.
-- A missing pair is an unsynchronized addition or removal; a matching ID with a different hash is changed content. Duplicate IDs, broken dependencies, and manually changed generated JSON also block execution. Timestamps are informational, not proof of a match.
-- Before execution, validate Markdown and regenerate derived JSON as one complete revision. Show added, changed, and removed tasks for approval; never reconcile by overwriting the human document. A failed conversion must leave the previous complete generation intact and block running stale files.
-- Keep completion, attempts, and usage in separate machine records keyed by task ID and definition revision. Regeneration must preserve history. Changed tasks and affected dependents require review and re-verification; removed tasks retain history but leave the runnable queue. Markdown checkboxes alone cannot establish verified completion.
-- Run an immutable snapshot of the approved revision. Edits during execution do not change the active task; pause before starting another task when the source revision changes. Retain results against the revision actually executed.
-- `ggez init` must include these source, identity, and synchronization rules in new or existing project agent instructions, including instructions-only installs.
+- `tasks.md` is the only editable task definition. Use stable `TASK-N` IDs; do not renumber or reuse them. There is no ongoing Markdown/JSON synchronization and no `sync.json`.
+- Approve the exact task document before generating runner files. At launch, use that approved copy, validate required fields and dependencies, and generate the entire runner input together. If conversion fails or omits instructions, do not start execution.
+- Keep the approved Markdown copy with its run ID, approval record, and generated JSON. The runner reads this fixed copy; its completion flags may change, but its task definitions must not. Users never edit or reconcile generated files.
+- Later edits are a new draft. They do not alter the active run. Before continuing with those edits, pause at a task boundary, approve the revised document, and create a new run snapshot. Never apply old approval automatically to changed instructions.
+- Record completion, evidence, and usage against the run and task IDs. Preserve previous attempts. Carry verified progress into a revised run only after confirming the task and its prerequisites still satisfy the revised requirements.
+- Direct agent work can use the approved Markdown without Ralph JSON. The approval and evidence rules still apply.
+- `ggez check` validates the documents and any selected run's internal consistency; it must not compare an old snapshot with a newer draft as a sync error.
+- `ggez init` must include these rules in both new and existing agent instructions, including instructions-only installs.
 
 ## CLI and Skill Discovery
 
