@@ -106,3 +106,7 @@ The output regression test failed before the change, then passed. All 84 tests p
 ## Post-merge check — 2026-10-06
 
 PR #1 merged as bb3c528. The unauthenticated README install URL returns 404 because the repository is private, confirmed with `gh repo view --json visibility`. No visibility changes made. Local-checkout installation remains the verified route.
+
+## Public installer recheck — 2026-10-06
+
+After Viviana made the repository public, the README URL downloaded successfully. Installation, help, init, plan, and status all passed in a disposable directory using the public downloads. The earlier private-repository limitation is resolved; temporary files were removed.

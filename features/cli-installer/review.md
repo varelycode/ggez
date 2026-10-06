@@ -14,7 +14,7 @@ Install, init, plan, and status implemented. No runner added.
 
 ## Human review
 
-Accepted by Viviana on 2026-10-06. Private repo: install from a checkout. Full feature records retained as requested.
+Accepted by Viviana on 2026-10-06. Public download and installed commands verified. Full feature records retained as requested.
 
 ## Decision
 
