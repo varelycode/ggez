@@ -73,7 +73,7 @@ Approved by Viviana on 2026-10-06. Keep TASK-N IDs stable. This is the editable 
 
 - [x] TASK-5 — Report feature status from available evidence
 
-  - Done when: Status selects one feature automatically or offers a choice. It shows goal, stage, task, state/reason, completion count/percentage, and recorded time. Missing data is explicit; Running needs a live signal and Complete needs checks plus human acceptance.
+  - Done when: Status selects one feature automatically or offers a choice. It shows feature, stage, task, completion count/percentage, recorded time, and full file paths. It omits Goal, State, and Next from printed output. Missing data is explicit; Running needs a live signal and Complete needs checks plus human acceptance.
   - Verify: Tests cover every state/reason, no tasks, partial completion, missing/malformed evidence, absent/partial timing, excluded approval waits, multiple features, and stale run signals. Checkboxes alone cannot produce Complete.
   - Must not: Invent elapsed time, infer a live run from a stale timestamp, or implement a runner to supply missing data.
   - Depends on: TASK-4

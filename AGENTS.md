@@ -92,5 +92,5 @@ Automatic conversion and run snapshots are planned. `scripts/tasks.py` currently
 
 - Use four states only: `Ready`, `Running`, `Needs attention`, and `Complete`.
 - For `Needs attention`, use fixed reasons: `Approval required`, `Check failed`, `Missing prerequisite`, or `Run interrupted`.
-- Stage is separate: `Brief`, `Tasks`, `Implementation`, or `Review`. Display Current task, Stage and completion count, Outcome, State/reason, then human-readable file links.
+- Stage is separate: `Brief`, `Tasks`, `Implementation`, or `Review`. Display Feature, Current task, Stage, completion count/percentage, recorded time, and full file paths. Keep Goal, State, and Next out of printed status output; retain the state rules internally.
 - Derive transitions from recorded events. `Running` requires a live runner signal. `Complete` requires all required checks and human acceptance of the outcome; finishing implementation alone leads to Review with approval required.

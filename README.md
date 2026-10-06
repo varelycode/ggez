@@ -24,3 +24,7 @@ ggez init
 take a peek at the proposed changes, then confirm when you’re happy with them.
 
 See the [working agreement](docs/workflow.md) and [agent rules](AGENTS.md).
+
+## check progress
+
+`ggez status` shows your task, stage, progress, recorded time, and file paths.

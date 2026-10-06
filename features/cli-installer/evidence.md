@@ -96,3 +96,9 @@ During documentation verification, a 1,026-character README draft failed the len
 ### Remaining limits
 
 The public GitHub download is not live-tested: the installer is unpublished. Local installation and archive download fixtures pass. Arbitrary prose conflicts still require review of the init preview. No runner or automatic time/token collection is included. Final human acceptance is pending in Review; nothing was merged or published.
+
+## TASK-5 follow-up — simplify status output
+
+Requested by Viviana: omit Goal, State, and Next from printed status. Kept feature, current task, stage, completion, recorded time, and full file paths. Updated the Brief, task contract, CLI help, and README.
+
+The output regression test failed before the change, then passed. All 84 tests pass on macOS and Linux; state/approval logic remains tested internally. README: 995 characters. `git diff --check` passes.

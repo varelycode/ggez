@@ -483,10 +483,7 @@ def status_project(args):
     count = str(info['completed']) + '/' + str(info['total'])
     percent = format(100 * info['completed'] / info['total'], '.0f') + '%' if info['total'] else 'Not available'
     show('Completed', count + ' (' + percent + ')')
-    show('Goal', info['goal'])
-    show('State', info['state'] + (' / ' + info['reason'] if info['reason'] else ''))
     show('Execution time', info['time'])
-    show('Next', info['next'])
     for name in ('brief.md', 'tasks.md', 'evidence.md', 'review.md'):
         if (path / name).is_file():
             show(name, path / name)
@@ -504,7 +501,7 @@ def main(argv=None):
     plan = commands.add_parser('plan', help='Create a blank Brief or select a feature.')
     plan.add_argument('title', nargs='?')
     plan.add_argument('--project', type=Path, default=Path('.'))
-    status = commands.add_parser('status', help='Show recorded feature progress and the next action.')
+    status = commands.add_parser('status', help='Show task progress, recorded time, and file paths.')
     status.add_argument('feature', nargs='?')
     status.add_argument('--project', type=Path, default=Path('.'))
     args = parser.parse_args(argv)

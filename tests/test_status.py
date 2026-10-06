@@ -177,8 +177,13 @@ class StatusTests(unittest.TestCase):
         result = subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/ggez.py'),
                                  'status', '--project', str(self.root)], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        for value in ('1/2 (50%)', 'Let people sign in', 'State: Ready', 'Execution time: Unavailable'):
+        for value in ('Feature: login', 'Current task: TASK-2', 'Stage: Implementation', '1/2 (50%)', 'Execution time: Unavailable'):
             self.assertIn(value, result.stdout)
+        labels = [line.split(':', 1)[0] for line in result.stdout.splitlines()]
+        self.assertEqual(labels, ['Feature', 'Current task', 'Stage', 'Completed', 'Execution time',
+                                  'brief.md', 'tasks.md', 'evidence.md'])
+        for name in ('brief.md', 'tasks.md', 'evidence.md'):
+            self.assertIn(str(self.feature / name), result.stdout)
         self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
 
     def test_multiple_feature_selection_and_cancel(self):

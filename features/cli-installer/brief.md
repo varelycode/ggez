@@ -29,7 +29,7 @@ Scenario 2: Jose wants to do an overnight run of a feature his product team is p
 
 - init
 - install script to use CLI
-- status update of the run with basic goal read out and status update, and percentage of tasks completed, and time ran
+- status output with the feature, current task, stage, percentage completed, recorded time, and file paths
 - `ggez plan "Feature title"` creates a blank Brief with that title and prints a short loop overview and a copyable agent prompt. The user must fill Slice and Outcome; the agent never fills those required fields.
 - Templates explain Verified (default) and Unverified execution. Both require approved tasks, tests, and evidence.
 - one-line readme instructions for init, status, plan
@@ -54,7 +54,7 @@ Scenario 2: Jose wants to do an overnight run of a feature his product team is p
 - [ ] `ggez plan` without a title lists features in the current project and “New feature.” Selecting a feature shows its Brief path and next-step prompt without editing it. An empty list offers creation; cancelling writes nothing.
 - [ ] Verified is the default. Templates and the handoff prompt explain both modes; the receiving agent executes tasks, and the CLI does not launch or supervise a runner. Verified mode runs one approved task, tests it, records evidence, and waits for human review. Explicitly requested Unverified mode continues through approved tasks without per-task review; tests and evidence remain required. Both stop on failures or blockers; final acceptance stays human.
 - [ ] Repository Markdown stays under 600 characters, except AGENTS.md and templates; README stays under 1,000. Instructions and prompts explain the next action briefly.
-- [ ] `ggez status` selects the only feature automatically or offers a choice when several exist. It reads available local task/evidence records and shows the selected feature, goal, stage, current task, state/reason, completed/total tasks, percentage, and recorded execution time. No tasks means “Not available,” not division by zero. Missing or partial timing is labeled; approval waits are excluded when timing is recorded.
+- [ ] `ggez status` selects the only feature automatically or offers a choice when several exist. It reads available local task/evidence records and shows the selected feature, stage, current task, completed/total tasks, percentage, recorded execution time, and full file paths. Goal, State, and Next are omitted from printed output. No tasks means “Not available,” not division by zero. Missing or partial timing is labeled; approval waits are excluded when timing is recorded.
 - [ ] Status uses Ready, Running, Needs attention, or Complete. Running requires a live runner signal; Complete requires checks and human acceptance. Task checkboxes alone do not prove either state.
 - [ ] Failed installation, missing prerequisites, uninitialized projects, malformed records, and multiple features produce clear next steps. Failures preserve existing files and leave no partial installation presented as successful.
 - [ ] Automated tests cover installation, repeat initialization, preservation/conflicts, plan creation, and status calculations and missing data. Run `python3 -B -m unittest discover -s tests -v`; add exact installer smoke-test commands with implementation.
