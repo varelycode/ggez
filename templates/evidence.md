@@ -14,7 +14,7 @@
 
 **Target branch:** [Branch]
 
-**Mode:** [One task / Unverified]
+**Mode:** [Verified / Unverified]
 
 ## Claim checks
 
@@ -29,6 +29,10 @@ Add a row for each Brief acceptance check. Use Pending, Pass, Fail, or Not appli
 Record each task attempt as it happens, including failures and corrections. Repeat this block for each task.
 
 ### [TASK-N] — [Date]
+
+**Result:** [Pass / Fail / Blocked / Interrupted]
+
+**Human review:** [Pending / Approved; only record approval when the user gives it]
 
 **Revision checked:** [Commit, plus any uncommitted changes]
 

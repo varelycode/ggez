@@ -1,6 +1,6 @@
 # [Feature name] — Brief
 
-Fill in the two sections marked **Required**: Slice and Outcome. Leave other sections blank if you are unsure. Approval is recorded later, after review. Ask for help whenever you need it.
+Fill in the two sections marked **Required**: Slice and Outcome. Leave other sections blank if you are unsure. Approval is recorded later, after review. The agent may explain these fields, but you must fill Slice and Outcome yourself.
 
 ## Slice — **Required**
 

@@ -35,7 +35,7 @@ For interface changes, use the Brief's agreed usability checks:
 
 ## Decision
 
-Viviana chooses after reviewing the result. Leave all unchecked until then.
+The user chooses after reviewing the result. Leave all unchecked until then.
 
 - [ ] Accepted
 - [ ] Revise
