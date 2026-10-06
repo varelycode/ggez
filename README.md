@@ -1,32 +1,14 @@
 # ggez
 
-Write a Brief, approve tasks, build with evidence, then review.
+A small workflow kit for building with coding agents.
 
-## Install
+1. **Describe it.** Fill in Slice and Outcome in a [Brief](templates/prd.md).
+2. **Approve it.** Review and edit the [tasks](templates/tasks.md).
+3. **Build it.** The agent follows approved tasks and records [Evidence](templates/evidence.md).
+4. **Review it.** Check the outcome and leave feedback in [Review](templates/review.md).
 
-macOS/Linux, Python 3.9+ and curl. Once this installer lands on `main`:
+You edit Markdown. Runner files are generated after approval, only when needed. Each run uses a fixed copy. Later edits need fresh approval; there is nothing to sync.
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/varelycode/ggez/main/scripts/install.sh | sh
-```
+Templates and Python task helpers are available. The CLI, skill, and automatic generation are planned.
 
-From a checkout now: `sh scripts/install.sh --source "$PWD"`.
-Follow the printed PATH instruction.
-
-### Existing project
-
-Run `ggez init` in your project. Review and confirm. Existing rules stay; edited managed files require resolution.
-
-### Fresh project
-
-Run `mkdir my-project && cd my-project && ggez init`.
-
-## Use
-
-- `ggez plan "My feature"`: create a blank Brief and get an agent prompt.
-- `ggez plan`: select a feature or create one.
-- `ggez status`: show recorded progress and the next action.
-
-You fill Slice and Outcome. Verified pauses after each task; explicitly choose Unverified to continue. Both require tests and evidence.
-
-[Workflow](docs/workflow.md). No runner or automatic usage collection is included.
+See the [working agreement](docs/workflow.md) and [agent rules](AGENTS.md).
