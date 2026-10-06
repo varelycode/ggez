@@ -1,7 +1,5 @@
 # ggez
 
-A small workflow kit for building with coding agents.
-
 1. **Describe it.** Fill in Slice and Outcome in a [Brief](templates/prd.md).
 2. **Approve it.** Review and edit the [tasks](templates/tasks.md).
 3. **Build it.** The agent follows approved tasks and records [Evidence](templates/evidence.md).
