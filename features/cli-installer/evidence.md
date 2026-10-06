@@ -102,3 +102,7 @@ The public GitHub download is not live-tested: the installer is unpublished. Loc
 Requested by Viviana: omit Goal, State, and Next from printed status. Kept feature, current task, stage, completion, recorded time, and full file paths. Updated the Brief, task contract, CLI help, and README.
 
 The output regression test failed before the change, then passed. All 84 tests pass on macOS and Linux; state/approval logic remains tested internally. README: 995 characters. `git diff --check` passes.
+
+## Post-merge check — 2026-10-06
+
+PR #1 merged as bb3c528. The unauthenticated README install URL returns 404 because the repository is private, confirmed with `gh repo view --json visibility`. No visibility changes made. Local-checkout installation remains the verified route.
