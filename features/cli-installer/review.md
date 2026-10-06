@@ -14,7 +14,7 @@ Install, init, plan, and status implemented. No runner added.
 
 ## Human review
 
-Accepted by Viviana on 2026-10-06. Public download awaits publication. Full feature records exceed 600 characters to retain the requested copies.
+Accepted by Viviana on 2026-10-06. Private repo: install from a checkout. Full feature records retained as requested.
 
 ## Decision
 
