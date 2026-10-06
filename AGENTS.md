@@ -1,6 +1,6 @@
 # Agent rules
 
-ggez: a reusable workflow kit for humans and coding agents. Python 3 task helpers exist; the CLI, skill, converter, and runner are planned.
+ggez: a reusable workflow kit for humans and coding agents. Python 3 task helpers, a user-local installer, and CLI init/plan/status exist. The skill, converter, and runner are planned.
 
 ## Testing
 
@@ -21,7 +21,7 @@ ggez: a reusable workflow kit for humans and coding agents. Python 3 task helper
 
 - To start a feature, create a blank Brief from the template, retaining only the requested title. Leave all fields as placeholders; do not infer goals, scope, ownership, status, or acceptance checks.
 - Mark Slice and Outcome as **Required** and ask the user to fill both sections in one handoff. Explain that the remaining sections may stay blank initially and approval comes after review.
-- Do not default to a one-question-at-a-time interview. Offer help on request, and fill or propose sections only when asked. When clarification is needed, present a short, bounded set of missing details.
+- Do not default to a one-question-at-a-time interview. Explain required fields on request, but never fill Slice or Outcome. Fill or propose optional sections only when asked. When clarification is needed, present a short, bounded set of missing details.
 - Follow the [workflow](docs/workflow.md), approved Brief and tasks, and active issue.
 - Show evidence and report blockers.
 - Keep one `evidence.md` and one `review.md` per feature, alongside its Brief. Do not create separate Evidence or Review files for individual tasks.
@@ -42,7 +42,7 @@ ggez: a reusable workflow kit for humans and coding agents. Python 3 task helper
 
 ## ggez Init Requirements
 
-The CLI is planned; these are requirements for its implementation.
+Init installs templates and managed workflow instructions. Plan creates blank Briefs; status reads recorded progress.
 
 - Include the feature-level Evidence and Review, file layout, and usage tracking rules in the instructions installed by `ggez init`.
 - Include those rules when adding instructions to an existing project `AGENTS.md`, even if no other kit files are installed. In that mode, document the layout without claiming directories or tracking have been created.
@@ -50,7 +50,7 @@ The CLI is planned; these are requirements for its implementation.
 
 ## ggez Feature Layout
 
-These are requirements for the planned CLI. Kit source templates live in `templates/`; installation copies them to `.ggez/templates/`.
+Kit source templates live in `templates/`; init copies document templates to `.ggez/templates/`. Runner integration remains planned.
 
 - Keep editable documents in `features/<feature-id>/`: `brief.md`, `tasks.md`, `evidence.md`, and `review.md`.
 - Create the visible feature folder when starting a feature. Drafts need no corresponding machine task files or paired directory checks.
@@ -84,7 +84,7 @@ Automatic conversion and run snapshots are planned. `scripts/tasks.py` currently
 ## CLI and Skill Discovery
 
 - Provide one entry point named `ggez`. The planned companion skill handles “start a feature,” “prepare tasks,” “build it,” and status requests.
-- Installation should set up the CLI and offer the skill. `ggez init` should add discoverable instructions to existing agent files without overwriting them.
+- Installation sets up the CLI; the companion skill is out of scope for this release. `ggez init` should add discoverable instructions to existing agent files without overwriting them.
 - Bare `ggez` should show the current feature and next action; outside an initialized project, offer setup. Keep help focused on the main actions with examples.
 - Keep template-only use possible. Explain which validation and tracking capabilities are unavailable without the tooling; do not claim instructions enforce them.
 
@@ -92,5 +92,5 @@ Automatic conversion and run snapshots are planned. `scripts/tasks.py` currently
 
 - Use four states only: `Ready`, `Running`, `Needs attention`, and `Complete`.
 - For `Needs attention`, use fixed reasons: `Approval required`, `Check failed`, `Missing prerequisite`, or `Run interrupted`.
-- Stage is separate: `Brief`, `Tasks`, `Implementation`, or `Review`. Display Current task, Stage and completion count, Outcome, State/reason, then human-readable file links.
+- Stage is separate: `Brief`, `Tasks`, `Implementation`, or `Review`. Display Feature, Current task, Stage, completion count/percentage, recorded time, and full file paths. Keep Goal, State, and Next out of printed status output; retain the state rules internally.
 - Derive transitions from recorded events. `Running` requires a live runner signal. `Complete` requires all required checks and human acceptance of the outcome; finishing implementation alone leads to Review with approval required.

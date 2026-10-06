@@ -6,6 +6,10 @@
 
 **Evidence:** {{Evidence link}}
 
+**Approval:** [Reviewer and date; leave blank until approved]
+
+**Mode:** [Verified / Unverified; Verified by default]
+
 ## Queue
 
 - [ ] TASK-1 — Verify project prerequisites and access
@@ -22,7 +26,7 @@
   Category: setup
   Complexity: low
 
-  - [ ] 1. Read the Brief and identify required setup: Read .agent/prd/PRD.md. Use its Prerequisites field; record only relevant tools, services, environment variable names, and test data.
+  - [ ] 1. Read the Brief and identify required setup: Read features/<feature-id>/brief.md. Use its Prerequisites field; record only relevant tools, services, environment variable names, and test data.
   - [ ] 2. Verify: prerequisites: {{List exact safe checks and their expected results; record unavailable access without exposing secret values}}
 
   </details>
@@ -49,7 +53,7 @@
 
 ## Ralph rules
 
-1. Read the Brief. Work on the first unchecked task only; stop if blocked.
+1. Verified is the default: complete one approved task, test it, record evidence, then wait for human review. Explicit Unverified mode continues approved tasks without per-task review; tests, evidence, stop conditions, and final human acceptance remain required.
 2. Stay within its scope and honor the Brief’s stop conditions.
 3. Record checks, failures, corrections, and results in Evidence. Keep secrets and private data out.
 4. Record verified completion against the executed task ID and revision. Checkboxes alone do not prove completion; preserve this editable source.
