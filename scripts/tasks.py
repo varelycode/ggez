@@ -106,13 +106,14 @@ def markdown(value):
     return re.sub(r'([\\`*_\[\]#|])', r'\\\1', value)
 
 
-def render(tasks, title, brief, evidence):
+def render(tasks, title, brief):
     lines = [f'# {markdown(title)} — Tasks', '',
              '> Generated from Ralph JSON. Edit JSON and regenerate; checklist edits do not update task state.', '',
-             f'**Brief:** {markdown(brief)}', '', f'**Evidence:** {markdown(evidence)}', '', '## Queue', '']
+             f'**Brief:** {markdown(brief)}', '', '## Queue', '']
     for row, spec in tasks:
         checked = 'x' if row['passes'] else ' '
         lines += [f'- [{checked}] {row["id"]} — {markdown(row["title"])}', '',
+                  '  - **Result:** ' + ('Pass' if row['passes'] else 'Pending'),
                   '  - Done when: ' + '; '.join(markdown(s) for s in spec['acceptanceCriteria'])]
         verification = [s for s in spec['steps'] if s['description'].startswith('Verify:')]
         lines += ['  - Verify: ' + '; '.join(markdown(s['description'][7:].strip() + ': ' + s['details']) for s in verification)]
@@ -139,11 +140,10 @@ def render(tasks, title, brief, evidence):
     lines += ['## Ralph rules', '',
               '1. Read the Brief. Work on the first unchecked task only; stop if blocked.',
               '2. Stay within its scope and honor the Brief’s stop conditions.',
-              '3. Record checks, failures, corrections, and results in Evidence. Keep secrets and private data out.',
+              '3. Report checks, failures, and corrections in the active agent run. Keep secrets and private data out.',
               '4. Update JSON completion fields only after verification, then regenerate this view.',
-              '5. Stop on scope expansion or repeated failure; record the blocker in Evidence.', '',
-              '## Status', '', f'**Next task:** {status}', '',
-              '**Blocked by:** Runtime blockers are recorded in Evidence, not in task JSON.', '']
+              '5. Stop on scope expansion or repeated failure and set the task Result before handing off.', '',
+              '## Status', '', f'**Next task:** {status}', '']
     return '\n'.join(lines)
 
 
@@ -154,15 +154,14 @@ def main():
     parser.add_argument('--allow-placeholders', action='store_true', help='Inspect templates only; not ready for execution')
     parser.add_argument('--title', default='Feature')
     parser.add_argument('--brief', default='.agent/prd/PRD.md')
-    parser.add_argument('--evidence', default='Not created yet')
     args = parser.parse_args()
     try:
         tasks = load_tasks(args.root, args.allow_placeholders)
         if args.command == 'render':
-            print(render(tasks, args.title, args.brief, args.evidence), end='')
+            print(render(tasks, args.title, args.brief), end='')
         else:
             suffix = ' (template placeholders allowed)' if args.allow_placeholders else ''
-            print(f'Validated {len(tasks)} task records{suffix}. Implementation and evidence were not checked.')
+            print(f'Validated {len(tasks)} task records{suffix}. Implementation was not checked.')
     except TaskError as exc:
         print(f'Invalid tasks: {exc}', file=sys.stderr)
         return 1

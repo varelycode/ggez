@@ -125,8 +125,9 @@ class TaskFilesTests(unittest.TestCase):
             path.write_text(json.dumps(spec))
         self.index_path.write_text(json.dumps(self.index))
         before = {p: p.read_bytes() for p in self.root.rglob('*.json')}
-        output = tasks.render(tasks.load_tasks(self.root), 'Test', 'brief.md', 'evidence.md')
+        output = tasks.render(tasks.load_tasks(self.root), 'Test', 'brief.md')
         self.assertIn('- [x] TASK-2', output)
+        self.assertIn('**Result:** Pass', output)
         self.assertIn('None — queue complete', output)
         self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob('*.json')})
 
@@ -135,10 +136,10 @@ class TaskFilesTests(unittest.TestCase):
         self.spec['technicalNotes'] += ['Ordinary technical note']
         self.spec['steps'][0]['pass'] = True
         self.save()
-        output = tasks.render(tasks.load_tasks(self.root), 'Test', 'brief.md', 'evidence.md')
+        output = tasks.render(tasks.load_tasks(self.root), 'Test', 'brief.md')
         for text in ['Done when:', 'Verify:', 'Must not:', 'Depends on: TASK-1',
                      'Ordinary technical note', '- [x] 1.', '- [ ] TASK-2',
-                     '**Next task:** TASK-1', '&lt;script&gt;']:
+                     '**Result:** Pending', '**Next task:** TASK-1', '&lt;script&gt;']:
             self.assertIn(text, output)
         self.assertNotIn('<script>', output)
         self.assertNotIn('**Blocked by:** Nothing', output)

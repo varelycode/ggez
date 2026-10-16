@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('install', ROOT / 'scripts/install.py')
 installer = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(installer)
+CLI_SPEC = importlib.util.spec_from_file_location('ggez_cli', ROOT / 'scripts/ggez.py')
+ggez_cli = importlib.util.module_from_spec(CLI_SPEC)
+CLI_SPEC.loader.exec_module(ggez_cli)
 
 
 class InstallerTests(unittest.TestCase):
@@ -71,7 +74,9 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(self.run_install().returncode, 0)
         launcher = self.prefix / 'bin/ggez'
         before = launcher.read_bytes()
-        self.assertEqual(self.run_install().returncode, 0)
+        repeated = self.run_install()
+        self.assertEqual(repeated.returncode, 0)
+        self.assertIn('Already current:', repeated.stdout)
         self.assertEqual(launcher.read_bytes(), before)
         self.assertEqual(len(list((self.prefix / 'share/ggez/releases').iterdir())), 1)
 
@@ -164,6 +169,63 @@ class InstallerTests(unittest.TestCase):
                 code = installer.main(['--prefix', str(self.prefix)])
         self.assertEqual(code, 0)
         self.assertEqual(self.help_output(self.prefix / 'bin/ggez').returncode, 0)
+
+    def test_downloaded_install_reports_updated_release(self):
+        launcher = installer.install(self.payload, self.prefix)
+        previous = launcher.read_bytes()
+        changed = dict(self.payload)
+        changed['templates/prd.md'] += b'\nUpdated fixture\n'
+        with mock.patch.object(installer.urllib.request, 'urlopen',
+                               return_value=io.BytesIO(self.archive(changed))):
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                code = installer.main(['--prefix', str(self.prefix)])
+        self.assertEqual(code, 0)
+        self.assertIn('Updated:', output.getvalue())
+        self.assertNotEqual(launcher.read_bytes(), previous)
+
+    def test_update_command_uses_packaged_installer_and_current_prefix(self):
+        release = self.prefix / 'share/ggez/releases' / ('a' * 64)
+        script = release / 'scripts/ggez.py'
+        packaged_installer = release / 'scripts/install.py'
+        script.parent.mkdir(parents=True)
+        script.write_text('fixture\n')
+        packaged_installer.write_text('fixture\n')
+        launcher = self.prefix / 'bin/ggez'
+        launcher.parent.mkdir(parents=True)
+        launcher.write_text('#!/bin/sh\n# ggez-managed-launcher-v1\nexec python3 -B ' +
+                            str(script) + ' "$@"\n')
+        completed = subprocess.CompletedProcess([], 0)
+        with mock.patch.object(ggez_cli, '__file__', str(script)), \
+                mock.patch.object(ggez_cli.subprocess, 'run', return_value=completed) as run:
+            self.assertEqual(ggez_cli.main(['update']), 0)
+        run.assert_called_once_with([sys.executable, '-B', str(packaged_installer),
+                                     '--prefix', str(self.prefix)])
+
+    def test_installed_update_command_activates_controlled_archive(self):
+        launcher = installer.install(self.payload, self.prefix)
+        previous = launcher.read_bytes()
+        release = next((self.prefix / 'share/ggez/releases').iterdir())
+        changed = dict(self.payload)
+        changed['templates/prd.md'] += b'\nControlled update fixture\n'
+        archive_path = self.root / 'controlled-update.tar.gz'
+        archive_path.write_bytes(self.archive(changed))
+        packaged_installer = release / 'scripts/install.py'
+        packaged_installer.write_text(packaged_installer.read_text().replace(
+            installer.ARCHIVE_URL, archive_path.as_uri()))
+        result = subprocess.run([str(launcher), 'update'], env=self.env,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Updated:', result.stdout)
+        self.assertNotEqual(launcher.read_bytes(), previous)
+        self.assertEqual(self.help_output(launcher).returncode, 0)
+        self.assertEqual(len(list((self.prefix / 'share/ggez/releases').iterdir())), 2)
+
+    def test_update_command_rejects_source_checkout(self):
+        result = subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/ggez.py'), 'update'],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('managed ggez installation', result.stderr)
+        self.assertNotIn('Traceback', result.stderr)
 
     def test_bootstrap_download_failure_does_not_execute_partial_script(self):
         tools = self.root / 'tools'

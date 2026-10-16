@@ -45,20 +45,21 @@ Scenario 2: Jose wants to do an overnight run of a feature his product team is p
 
 ## Acceptance checks
 
-- [ ] Installation supports macOS and Linux with Python 3.9+ and a user-local install script. Windows support is out of scope. Init, plan, and status work offline after installation.
-- [ ] Init preserves the project’s Git history and setup; it creates neither an app nor a Git repository.
-- [ ] The README provides one tested install command and one example each for init, plan, and status. Installation makes `ggez --help` available, or gives the exact PATH step required.
-- [ ] `ggez init` works in both an empty directory and an existing project. It previews changes, copies templates, and adds the ggez workflow rules without replacing unrelated agent instructions. Repeating it creates no duplicates; edited files and conflicting rules require resolution.
-- [ ] Installed rules explain approval, feature-level Evidence and Review, document/run layout, and the limits of usage tracking. They never claim an unavailable runner or tracker is active.
-- [ ] `ggez plan "Feature title"` creates a blank Brief in a unique feature folder. It preserves existing files, rejects unsafe paths, and prints a copyable agent prompt. Slice and Outcome stay blank for the user. The agent may explain required fields and suggest optional sections when asked, but never fills required fields.
-- [ ] `ggez plan` without a title lists features in the current project and “New feature.” Selecting a feature shows its Brief path and next-step prompt without editing it. An empty list offers creation; cancelling writes nothing.
-- [ ] Verified is the default. Templates and the handoff prompt explain both modes; the receiving agent executes tasks, and the CLI does not launch or supervise a runner. Verified mode runs one approved task, tests it, records evidence, and waits for human review. Explicitly requested Unverified mode continues through approved tasks without per-task review; tests and evidence remain required. Both stop on failures or blockers; final acceptance stays human.
-- [ ] Repository Markdown stays under 600 characters, except AGENTS.md and templates; README stays under 1,000. Instructions and prompts explain the next action briefly.
-- [ ] `ggez status` selects the only feature automatically or offers a choice when several exist. It reads available local task/evidence records and shows the selected feature, stage, current task, completed/total tasks, percentage, recorded execution time, and full file paths. Goal, State, and Next are omitted from printed output. No tasks means “Not available,” not division by zero. Missing or partial timing is labeled; approval waits are excluded when timing is recorded.
-- [ ] Status uses Ready, Running, Needs attention, or Complete. Running requires a live runner signal; Complete requires checks and human acceptance. Task checkboxes alone do not prove either state.
-- [ ] Failed installation, missing prerequisites, uninitialized projects, malformed records, and multiple features produce clear next steps. Failures preserve existing files and leave no partial installation presented as successful.
-- [ ] Automated tests cover installation, repeat initialization, preservation/conflicts, plan creation, and status calculations and missing data. Run `python3 -B -m unittest discover -s tests -v`; add exact installer smoke-test commands with implementation.
-- [ ] Walk through install → init → plan → status in disposable fresh and existing projects. Review the generated agent prompt and verify that a draft Brief remains unapproved.
+- [x] Installation supports macOS and Linux with Python 3.9+ and a user-local install script. Windows support is out of scope. Init, plan, and status work offline after installation.
+- [x] Init preserves the project’s Git history and setup; it creates neither an app nor a Git repository.
+- [x] The README provides one tested install command and one example each for init, plan, and status. Installation makes `ggez --help` available, or gives the exact PATH step required.
+- [x] `ggez init` works in both an empty directory and an existing project. It previews changes, copies templates, and adds the ggez workflow rules without replacing unrelated agent instructions. Repeating it creates no duplicates; edited files and conflicting rules require resolution.
+- [x] Installed rules explain approval, feature-level Evidence and Review, document/run layout, and the limits of usage tracking. They never claim an unavailable runner or tracker is active.
+- [x] `ggez plan "Feature title"` creates a blank Brief in a unique feature folder. It preserves existing files, rejects unsafe paths, and prints a copyable agent prompt. Slice and Outcome stay blank for the user. The agent may explain required fields and suggest optional sections when asked, but never fills required fields.
+- [x] `ggez plan` without a title lists features in the current project and “New feature.” Selecting a feature shows its Brief path and next-step prompt without editing it. An empty list offers creation; cancelling writes nothing.
+- [x] Verified is the default. Templates and the handoff prompt explain both modes; the receiving agent executes tasks, and the CLI does not launch or supervise a runner. Verified mode runs one approved task, tests it, records evidence, and waits for human review. Explicitly requested Unverified mode continues through approved tasks without per-task review; tests and evidence remain required. Both stop on failures or blockers; final acceptance stays human.
+- [x] Repository Markdown stays under 600 characters, except AGENTS.md and templates; README stays under 1,000. Instructions and prompts explain the next action briefly.
+- [x] `ggez status` selects the only feature automatically or offers a choice when several exist. It reads available local task/evidence records and shows the selected feature, stage, current task, completed/total tasks, percentage, recorded execution time, and full file paths. Goal, State, and Next are omitted from printed output. No tasks means “Not available,” not division by zero. Missing or partial timing is labeled; approval waits are excluded when timing is recorded.
+- [x] Status uses Ready, Running, Needs attention, or Complete. Running requires a live runner signal; Complete requires checks and human acceptance. Task checkboxes alone do not prove either state.
+- [x] Failed installation, missing prerequisites, uninitialized projects, malformed records, and multiple features produce clear next steps. Failures preserve existing files and leave no partial installation presented as successful.
+- [x] Automated tests cover installation, repeat initialization, preservation/conflicts, plan creation, and status calculations and missing data. Run `python3 -B -m unittest discover -s tests -v`; add exact installer smoke-test commands with implementation.
+- [x] Walk through install → init → plan → status in disposable fresh and existing projects. Review the generated agent prompt and verify that a draft Brief remains unapproved.
+- [x] Viviana reviewed the finished workflow and accepted the outcome on 2026-10-06.
 
 ## Safety
 
@@ -70,6 +71,4 @@ Scenario 2: Jose wants to do an overnight run of a feature his product team is p
 
 ## Related notes
 
-- Tasks: [Review task list](tasks.md) — awaiting approval.
-- Evidence: Not created; one file for this feature.
-- Review: Not created; acceptance remains Viviana’s decision.
+- Tasks: [Approved task list](tasks.md).

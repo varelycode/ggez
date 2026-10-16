@@ -10,14 +10,17 @@ import re
 from pathlib import Path
 import shutil
 import stat
+import subprocess
 import sys
 import tempfile
 
 START = '<!-- ggez:start -->'
 END = '<!-- ggez:end -->'
-TEMPLATES = ('prd.md', 'tasks.md', 'evidence.md', 'review.md')
+TEMPLATES = ('prd.md', 'tasks.md')
+LEGACY_TEMPLATES = ('evidence.md', 'review.md')
 BUNDLE = Path(__file__).resolve().parents[1] / 'templates'
 MANIFEST = '.ggez/install.json'
+MANIFEST_VERSION = 2
 
 
 class ProjectError(ValueError):
@@ -62,14 +65,20 @@ def plan_init(root):
     require(root.is_dir(), 'Create the project directory first, then run ggez init.')
     manifest_bytes = read_target(root, MANIFEST)
     hashes = {}
+    manifest_version = None
     names = {'AGENTS.md', *('.ggez/templates/' + name for name in TEMPLATES)}
+    legacy_names = names | {'.ggez/templates/' + name for name in LEGACY_TEMPLATES}
     if manifest_bytes is not None:
         try:
             manifest = json.loads(manifest_bytes)
             require(isinstance(manifest, dict) and set(manifest) == {'version', 'files'}
-                    and type(manifest['version']) is int and manifest['version'] == 1, 'Invalid init manifest; restore it before retrying.')
+                    and type(manifest['version']) is int
+                    and manifest['version'] in (1, MANIFEST_VERSION),
+                    'Invalid init manifest; restore it before retrying.')
+            manifest_version = manifest['version']
             hashes = manifest['files']
-            require(isinstance(hashes, dict) and set(hashes) == names
+            expected_names = legacy_names if manifest_version == 1 else names
+            require(isinstance(hashes, dict) and set(hashes) == expected_names
                     and all(isinstance(value, str) and len(value) == 64
                             and all(c in '0123456789abcdef' for c in value) for value in hashes.values()),
                     'Invalid init manifest; restore it before retrying.')
@@ -86,7 +95,8 @@ def plan_init(root):
     else:
         require('AGENTS.md' not in hashes, 'Conflict: managed ggez instructions were removed from AGENTS.md.')
         existing = agents or b''
-        require(not re.search(r'^#{1,6}\s+.*\bggez\b', existing.decode('utf-8'), re.I | re.M),
+        require(not re.search(r'^#{1,6}\s+ggez workflow\s*#*\s*$',
+                              existing.decode('utf-8'), re.I | re.M),
                 'Conflict: unmarked ggez section in AGENTS.md. Resolve it before retrying.')
         separator = b'' if not existing or existing.endswith(b'\n\n') else (b'\n' if existing.endswith(b'\n') else b'\n\n')
         desired['AGENTS.md'] = existing + separator + block + b'\n'
@@ -99,9 +109,19 @@ def plan_init(root):
                     'Conflict: edited or unrelated template ' + name + '. Resolve it before retrying.')
         if name in hashes and current is None:
             raise ProjectError('Conflict: managed file was removed: ' + name)
+    if manifest_version == 1:
+        for template in LEGACY_TEMPLATES:
+            name = '.ggez/templates/' + template
+            current = read_target(root, name)
+            before[name] = current
+            if current is not None:
+                require(hashes.get(name) == digest(current),
+                        'Conflict: edited legacy template ' + name + '. Resolve it before retrying.')
+            desired[name] = None
     new_hashes = {name: digest(block if name == 'AGENTS.md' else content)
-                  for name, content in desired.items()}
-    desired[MANIFEST] = (json.dumps({'version': 1, 'files': new_hashes}, indent=2, sort_keys=True) + '\n').encode()
+                  for name, content in desired.items() if content is not None}
+    desired[MANIFEST] = (json.dumps({'version': MANIFEST_VERSION, 'files': new_hashes},
+                                    indent=2, sort_keys=True) + '\n').encode()
     before[MANIFEST] = manifest_bytes
     return before, desired
 
@@ -115,14 +135,15 @@ def apply_init(root, before, desired):
     retain_stage = False
     try:
         for index, name in enumerate(changed):
-            file = stage / str(index)
-            file.write_bytes(desired[name])
-            mode = stat.S_IMODE((root / name).stat().st_mode) if before[name] is not None else 0o644
-            file.chmod(mode)
+            if desired[name] is not None:
+                file = stage / str(index)
+                file.write_bytes(desired[name])
+                mode = stat.S_IMODE((root / name).stat().st_mode) if before[name] is not None else 0o644
+                file.chmod(mode)
             if before[name] is not None:
                 backup = stage / ('backup-' + str(index))
                 backup.write_bytes(before[name])
-                backup.chmod(mode)
+                backup.chmod(stat.S_IMODE((root / name).stat().st_mode))
         # Refuse a stale preview before changing any project files.
         require(all(read_target(root, name) == old for name, old in before.items()),
                 'Project changed after preview. Run init again.')
@@ -137,14 +158,18 @@ def apply_init(root, before, desired):
                 directory.mkdir()
                 directories.append(directory)
             require(read_target(root, name) == before[name], 'Project changed during init: ' + name)
-            os.replace(stage / str(index), target)
+            if desired[name] is None:
+                target.unlink()
+            else:
+                os.replace(stage / str(index), target)
             applied.append((index, name))
     except (OSError, ProjectError, KeyboardInterrupt):
         for index, name in reversed(applied):
             try:
                 require(read_target(root, name) == desired[name], 'File changed during rollback: ' + name)
                 if before[name] is None:
-                    (root / name).unlink()
+                    if desired[name] is not None:
+                        (root / name).unlink()
                 else:
                     os.replace(stage / ('backup-' + str(index)), root / name)
             except (OSError, ProjectError):
@@ -171,7 +196,8 @@ def init_project(args):
         return 0
     print('Init preview: ' + str(root))
     for name in changed:
-        print(('Create ' if before[name] is None else 'Update ') + name)
+        action = 'Remove ' if desired[name] is None else ('Create ' if before[name] is None else 'Update ')
+        print(action + name)
     if 'AGENTS.md' in changed:
         old = (before['AGENTS.md'] or b'').decode('utf-8')
         new = desired['AGENTS.md'].decode('utf-8')
@@ -201,7 +227,7 @@ def project_root(directory):
     require(manifest is not None, 'Project is not initialized. Run ggez init first.')
     try:
         record = json.loads(manifest)
-        require(isinstance(record, dict) and record.get('version') == 1
+        require(isinstance(record, dict) and record.get('version') in (1, MANIFEST_VERSION)
                 and isinstance(record.get('files'), dict), 'Invalid init manifest. Run ggez init to inspect it.')
     except ValueError as exc:
         raise ProjectError('Invalid init manifest. Run ggez init to inspect it.') from exc
@@ -284,14 +310,15 @@ def create_feature(root, title):
 
 def print_handoff(path):
     print('Brief: ' + str(path / 'brief.md'))
-    print('Loop: fill Brief → approve tasks → build and test → review evidence.')
+    print('Loop: fill Brief → approve tasks → build and test → accept the outcome.')
     print('\nCopy into Codex, Cursor, or Claude:')
     print('Read AGENTS.md and ' + str(path / 'brief.md') + '. '
           'I fill Slice and Outcome; never fill those required sections for me. '
           'After I approve the Brief, prepare tasks for my approval. '
-          'Execute only approved tasks. Verified is default: test one task, record evidence, '
-          'then wait for my review. If I explicitly choose Unverified, continue approved tasks '
-          'with tests and evidence. Stop on failures or blockers. Final acceptance is mine.')
+          'Execute only approved tasks. Each task has one Result: Pending, Pass, Fail, Blocked, '
+          'or Interrupted; check it only with Pass. Verified is default: test one task, update its '
+          'Result, then wait for my review. If I explicitly choose Unverified, continue approved '
+          'tasks after tests. Stop on failures or blockers. Final Brief acceptance is mine.')
 
 
 def plan_feature(args):
@@ -344,26 +371,33 @@ def read_document(root, name):
 
 def read_tasks(text):
     queue = section(text, 'Queue')
-    rows = re.findall(r'^- \[([ xX])\] (TASK-[1-9][0-9]*) (?:—|-) (.+)$', queue, re.M)
-    require(len(rows) == len(re.findall(r'^- \[.*\].*TASK-', queue, re.M)),
+    matches = list(re.finditer(
+        r'^- \[([ xX])\] (TASK-[1-9][0-9]*) (?:—|-) ([^\n]+)\n(.*?)(?=^- \[[ xX]\] TASK-|\Z)',
+        queue, re.M | re.S))
+    require(len(matches) == len(re.findall(r'^- \[.*\].*TASK-', queue, re.M)),
             'Malformed task queue; use the task template.')
-    require(len({row[1] for row in rows}) == len(rows), 'Duplicate task ID in tasks.md.')
-    return [(task_id, title, check.lower() == 'x') for check, task_id, title in rows]
+    rows = []
+    for match in matches:
+        check, task_id, title, body = match.groups()
+        results = re.findall(r'^\s+- \*\*Result:\*\*[ \t]*([^\n]+)', body, re.M)
+        require(len(results) == 1, task_id + ' needs exactly one Result in tasks.md.')
+        result = results[0].strip()
+        require(result in ('Pending', 'Pass', 'Fail', 'Blocked', 'Interrupted'),
+                'Invalid task Result for ' + task_id)
+        checked = check.lower() == 'x'
+        require(checked == (result == 'Pass'),
+                task_id + ' must be checked exactly when Result is Pass.')
+        rows.append((task_id, title, checked, result))
+    require(len({row[0] for row in rows}) == len(rows), 'Duplicate task ID in tasks.md.')
+    return rows
 
 
-def read_evidence(text, task_ids):
-    records = {}
-    pattern = r'^#{2,3} (TASK-[1-9][0-9]*)[^\n]*\n(.*?)(?=^#{1,3} |\Z)'
-    for match in re.finditer(pattern, text, re.M | re.S):
-        task_id, body = match.groups()
-        require(task_id in task_ids, 'Evidence refers to an unknown task: ' + task_id)
-        result = field(body, 'Result')
-        require(result in ('', 'Pass', 'Fail', 'Blocked', 'Interrupted', 'Running'),
-                'Invalid evidence Result for ' + task_id)
-        checks = field(body, 'Checks')
-        records[task_id] = {'result': result, 'checks': checks,
-                            'reviewed': field(body, 'Human review') == 'Approved'}
-    return records
+def acceptance_checks(text):
+    body = section(text, 'Acceptance checks')
+    matches = re.findall(r'^- \[([ xX])\] .+$', body, re.M)
+    require(len(matches) == len(re.findall(r'^- \[.*\]', body, re.M)),
+            'Malformed Brief acceptance checks.')
+    return [check.lower() == 'x' for check in matches]
 
 
 def execution_time(root, feature_id):
@@ -402,14 +436,9 @@ def feature_status(root, path):
     brief = read_document(root, base + 'brief.md')
     require(bool(brief), 'Brief is missing or empty: ' + base + 'brief.md')
     tasks = read_document(root, base + 'tasks.md')
-    evidence = read_document(root, base + 'evidence.md')
-    review = read_document(root, base + 'review.md')
     rows = read_tasks(tasks)
-    records = read_evidence(evidence, {row[0] for row in rows})
-    passed = {task_id for task_id, _, checked in rows if checked
-              and records.get(task_id, {}).get('result') == 'Pass'
-              and records[task_id]['checks']}
-    pending = [(task_id, title) for task_id, title, _ in rows if task_id not in passed]
+    passed = {task_id for task_id, _, checked, result in rows if checked and result == 'Pass'}
+    pending = [(task_id, title) for task_id, title, _, _ in rows if task_id not in passed]
     result = {'goal': field(brief, 'Goal') or 'Not filled in', 'stage': 'Brief',
               'state': 'Needs attention', 'reason': 'Approval required',
               'current': pending[0][0] + ' — ' + pending[0][1] if pending else 'None',
@@ -425,31 +454,19 @@ def feature_status(root, path):
         result['next'] = 'Review the task list and record human approval.'
         return result
     result['stage'] = 'Implementation'
-    for record in records.values():
+    for _, _, _, task_result in rows:
         reason = {'Fail': 'Check failed', 'Blocked': 'Missing prerequisite',
-                  'Interrupted': 'Run interrupted', 'Running': 'Run interrupted'}.get(record['result'])
+                  'Interrupted': 'Run interrupted'}.get(task_result)
         if reason:
-            result.update(reason=reason, next='Review the latest evidence before continuing. No live runner is connected.')
+            result.update(reason=reason, next='Resolve the current task result before continuing.')
             return result
-    if any(checked and task_id not in passed for task_id, _, checked in rows):
-        result.update(reason='Missing prerequisite', next='Add passing Result and Checks evidence for checked tasks.')
-        return result
     if len(passed) == len(rows):
         result['stage'] = 'Review'
-        decisions = re.findall(r'^- \[[xX]\] (Accepted|Revise|Abandoned)\s*$', section(review, 'Decision'), re.M)
-        require(len(decisions) <= 1, 'Review has conflicting decisions.')
-        acceptance = re.findall(r'^- \[([ xX])\] .+$', section(review, 'Acceptance'), re.M)
-        if decisions == ['Accepted'] and acceptance and all(check.lower() == 'x' for check in acceptance):
-            result.update(state='Complete', reason='', next='Outcome accepted; keep the evidence with the feature.')
-        elif decisions == ['Revise']:
-            result.update(reason='Check failed', next='Address the human review feedback.')
+        checks = acceptance_checks(brief)
+        if checks and all(checks):
+            result.update(state='Complete', reason='', next='Outcome accepted.')
         else:
-            result['next'] = 'Review the outcome and record human acceptance after all checks pass.'
-        return result
-    mode = field(tasks, 'Mode') or 'Verified'
-    require(mode.split(',')[0] in ('Verified', 'Unverified'), 'Mode must be Verified or Unverified.')
-    if mode.startswith('Verified') and any(not records[task_id]['reviewed'] for task_id in passed):
-        result['next'] = 'Review completed-task evidence and record Human review: Approved before continuing.'
+            result['next'] = 'Review the outcome and check every Brief acceptance item.'
         return result
     result.update(state='Ready', reason='', next='Continue the first unfinished approved task with your agent.')
     return result
@@ -484,15 +501,41 @@ def status_project(args):
     percent = format(100 * info['completed'] / info['total'], '.0f') + '%' if info['total'] else 'Not available'
     show('Completed', count + ' (' + percent + ')')
     show('Execution time', info['time'])
-    for name in ('brief.md', 'tasks.md', 'evidence.md', 'review.md'):
+    for name in ('brief.md', 'tasks.md'):
         if (path / name).is_file():
             show(name, path / name)
     return 0
 
 
+def installation_prefix():
+    script = Path(__file__).resolve()
+    parents = script.parents
+    require(len(parents) > 5 and parents[0].name == 'scripts'
+            and parents[2].name == 'releases' and parents[3].name == 'ggez'
+            and parents[4].name == 'share',
+            'Update is available only from a managed ggez installation. Reinstall ggez, then retry.')
+    prefix = parents[5]
+    launcher = prefix / 'bin/ggez'
+    require(not launcher.is_symlink() and launcher.is_file(),
+            'Managed ggez launcher is missing. Reinstall ggez, then retry.')
+    text = launcher.read_text()
+    require(text.startswith('#!/bin/sh\n# ggez-managed-launcher-v1\n') and str(script) in text,
+            'Managed ggez launcher does not match this release. Reinstall ggez, then retry.')
+    installer = script.with_name('install.py')
+    require(not installer.is_symlink() and installer.is_file(),
+            'This ggez release cannot update itself. Reinstall ggez, then retry.')
+    return prefix, installer
+
+
+def update_cli():
+    prefix, installer = installation_prefix()
+    result = subprocess.run([sys.executable, '-B', str(installer), '--prefix', str(prefix)])
+    return result.returncode
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        prog='ggez', description='Plan features, approve tasks, and review evidence.')
+        prog='ggez', description='Plan features, approve tasks, and track progress.')
     commands = parser.add_subparsers(dest='command')
     init = commands.add_parser('init', help='Preview and install ggez in a project.')
     init.add_argument('directory', nargs='?', type=Path, default=Path('.'))
@@ -504,6 +547,7 @@ def main(argv=None):
     status = commands.add_parser('status', help='Show task progress, recorded time, and file paths.')
     status.add_argument('feature', nargs='?')
     status.add_argument('--project', type=Path, default=Path('.'))
+    commands.add_parser('update', help='Download, validate, and activate the latest ggez release.')
     args = parser.parse_args(argv)
     try:
         if args.command == 'init':
@@ -512,6 +556,8 @@ def main(argv=None):
             return plan_feature(args)
         if args.command == 'status':
             return status_project(args)
+        if args.command == 'update':
+            return update_cli()
         if read_target(Path.cwd().resolve(), MANIFEST) is not None:
             return status_project(argparse.Namespace(project=Path.cwd(), feature=None))
         parser.print_help()
