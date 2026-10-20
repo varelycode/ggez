@@ -37,9 +37,13 @@ class PlanTests(unittest.TestCase):
             '# [Feature name] — Brief', '# Login settings — Brief', 1)
         self.assertEqual(brief.read_text(), expected)
         self.assertEqual(list(brief.parent.iterdir()), [brief])
+        self.assertIn('## Context — **Required**', brief.read_text())
+        self.assertIn('[Path or URL]', brief.read_text())
         for required in ('Codex', 'Cursor', 'Claude', 'Verified', 'Unverified',
                          'never fill', 'approve', 'Stop on failures', str(brief)):
             self.assertIn(required, result.stdout)
+        self.assertIn('read the direct sources in Context', result.stdout)
+        self.assertIn('Do not load references found inside them', result.stdout)
 
     def test_title_collision_preserves_previous_feature(self):
         self.assertEqual(self.run_plan('Login').returncode, 0)

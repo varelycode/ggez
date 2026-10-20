@@ -22,6 +22,12 @@ Fill in the two sections marked **Required**: Slice and Outcome. Leave other sec
 
 **Example:** [One concrete situation: what the person starts with, what happens, and the expected result. Use realistic values that agree with the acceptance checks.]
 
+## Context — **Required**
+
+<!-- List 1–5 direct paths or URLs with a reason for each. Do not list references found inside them. If no additional context is needed, replace the placeholder with exactly: None beyond AGENTS.md and this Brief -->
+
+- [Path or URL] — [Why the agent needs it]
+
 ## Boundaries
 
 **In scope**

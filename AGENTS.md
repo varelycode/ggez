@@ -101,6 +101,7 @@ Automatic conversion and run snapshots are planned. `scripts/tasks.py` currently
 - Use `ggez plan "Feature title"` for a blank Brief, `ggez plan` to select a feature, `ggez status` to read recorded progress, and `ggez update` to update an installed CLI. These commands do not run an agent.
 
 - Use `.ggez/templates/` for feature documents. Start a blank Brief with only its requested title. The user fills Slice and Outcome; never fill those required sections. Explain fields when asked and propose optional sections only on request.
+- Before preparing tasks, require Context with one to five direct paths or URLs and a reason for each, or exactly `None beyond AGENTS.md and this Brief`. Read those sources. Do not load references found inside them unless the work requires it. Invalid or placeholder Context stays at Brief approval.
 - Keep `brief.md` and `tasks.md` in `features/<feature-id>/`. Create the feature folder when planning starts. Keep stable feature and TASK-N IDs.
 - Get human approval of the Brief, then the exact Markdown task list, before implementation. `tasks.md` is the editable task source. Changed instructions need fresh approval; never reuse approval for a changed task set.
 - Each task has exactly one Result: `Pending`, `Pass`, `Fail`, `Blocked`, or `Interrupted`. Check a task exactly when its Result is `Pass`.

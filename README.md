@@ -2,7 +2,7 @@
 
 ggez keeps feature work in two editable files: a Brief for the outcome and Tasks for implementation.
 
-1. Fill Slice and Outcome in the [Brief](templates/prd.md).
+1. Fill Slice and Outcome in the [Brief](templates/prd.md), then list 1–5 direct Context sources with reasons.
 2. Review and approve the [tasks](templates/tasks.md).
 3. Build and test. Each task records one fixed Result.
 4. Check the Brief acceptance list when the outcome is ready.
@@ -25,7 +25,7 @@ ggez plan "my next feature"
 ggez status
 ```
 
-`init` previews the templates and scoped agent rules before writing. `plan` creates a blank Brief. `status` reads approved documents without changing them.
+`init` previews templates and scoped agent rules. `plan` creates a blank Brief. `status` blocks invalid Context and reads progress without writing.
 
 Update an installed CLI without a checkout:
 

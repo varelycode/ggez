@@ -73,6 +73,10 @@ class InitTests(unittest.TestCase):
         for name in ggez.TEMPLATES:
             self.assertEqual((self.root / '.ggez/templates' / name).read_bytes(),
                              (ROOT / 'templates' / name).read_bytes())
+        self.assertIn('## Context — **Required**',
+                      (self.root / '.ggez/templates/prd.md').read_text())
+        self.assertIn('one to five direct paths or URLs',
+                      (self.root / 'AGENTS.md').read_text())
 
     def test_existing_project_rules_git_and_modes_survive(self):
         old = b'# Project rules\r\nKeep my formatting.\r\n'

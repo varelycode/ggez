@@ -23,6 +23,8 @@ class StatusTests(unittest.TestCase):
         self.feature = ggez.create_feature(self.root, 'Login')
         self.brief = ('# Login\n\n**Goal:** Let people sign in\n\n'
                       '**Approval:** Reviewer, 2026-10-06\n\n'
+                      '## Context — **Required**\n\n'
+                      '- [Login design](docs/login.md) — Defines the approved flow.\n\n'
                       '## Acceptance checks\n\n- [ ] Login works\n- [ ] Reviewer accepts the outcome\n')
         self.tasks = ('# Tasks\n\n**Approval:** Reviewer, 2026-10-06\n\n## Queue\n\n'
                       '- [ ] TASK-1 — Setup\n\n  - **Result:** Pending\n\n'
@@ -75,6 +77,39 @@ class StatusTests(unittest.TestCase):
         self.write('brief.md', '# Brief\n\n**Goal:** [Goal]\n\n**Approval:** [Reviewer]\n')
         result = self.status()
         self.assertEqual((result['stage'], result['reason']), ('Brief', 'Approval required'))
+
+    def test_context_accepts_references_or_exact_none_statement(self):
+        self.assertEqual(self.status()['stage'], 'Implementation')
+        notes = self.brief.replace(
+            '## Context — **Required**\n\n',
+            '## Context — **Required**\n\nRead these sources before tasks.\n\n').replace(
+            '## Acceptance checks',
+            '**Architecture**\n\n- One CLI reads the workflow files.\n\n## Acceptance checks')
+        self.write('brief.md', notes)
+        self.assertEqual(self.status()['stage'], 'Implementation')
+        context = ('## Context — **Required**\n\n'
+                   'None beyond AGENTS.md and this Brief\n\n')
+        self.write('brief.md', re.sub(r'## Context — \*\*Required\*\*\n.*?(?=## Acceptance)',
+                                      context, self.brief, flags=re.S))
+        self.assertEqual(self.status()['stage'], 'Implementation')
+
+    def test_invalid_context_requires_brief_approval(self):
+        invalid = [
+            '',
+            '- [Path or URL] — [Why the agent needs it]',
+            '- docs/login.md',
+            '- Login design — Defines the flow.',
+            '\n'.join('- docs/source' + str(index) + '.md — Needed.'
+                      for index in range(1, 7)),
+        ]
+        pattern = r'## Context — \*\*Required\*\*\n.*?(?=## Acceptance)'
+        for body in invalid:
+            with self.subTest(body=body):
+                replacement = '## Context — **Required**\n\n' + body + '\n\n'
+                self.write('brief.md', re.sub(pattern, replacement, self.brief, flags=re.S))
+                result = self.status()
+                self.assertEqual((result['stage'], result['reason']),
+                                 ('Brief', 'Approval required'))
 
     def test_blank_goal_does_not_read_next_field(self):
         self.write('brief.md', '# Brief\n\n**Goal:**\n\n**Approval:** Reviewer\n')

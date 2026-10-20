@@ -217,7 +217,7 @@ def init_project(args):
             print('Cancelled; no files changed. Use --yes after reviewing the preview.')
             return 0
     apply_init(root, before, desired)
-    print('Initialized. Start a blank Brief from .ggez/templates/prd.md; fill Slice and Outcome yourself.')
+    print('Initialized. Start a blank Brief from .ggez/templates/prd.md; fill Slice, Outcome, and Context yourself.')
     return 0
 
 
@@ -314,7 +314,10 @@ def print_handoff(path):
     print('\nCopy into Codex, Cursor, or Claude:')
     print('Read AGENTS.md and ' + str(path / 'brief.md') + '. '
           'I fill Slice and Outcome; never fill those required sections for me. '
-          'After I approve the Brief, prepare tasks for my approval. '
+          'I also provide the Context sources or exact no-context statement. '
+          'Before preparing tasks, read the direct sources in Context. Do not load references '
+          'found inside them unless the work requires it. After I approve the Brief, prepare '
+          'tasks for my approval. '
           'Execute only approved tasks. Each task has one Result: Pending, Pass, Fail, Blocked, '
           'or Interrupted; check it only with Pass. Verified is default: test one task, update its '
           'Result, then wait for my review. If I explicitly choose Unverified, continue approved '
@@ -362,6 +365,45 @@ def approved(text):
     if value and not re.match(r'^(pending|none|not approved|unapproved|draft)\b', value, re.I):
         return True
     return bool(re.search(r'^Approved by \S', text, re.M))
+
+
+def valid_context(text):
+    body = section(text, 'Context — **Required**')
+    body = re.sub(r'<!--.*?-->', '', body, flags=re.S).strip()
+    if body == 'None beyond AGENTS.md and this Brief':
+        return True
+    lines = [line.strip() for line in body.splitlines() if line.strip()]
+    first_source = next((index for index, line in enumerate(lines)
+                         if line.startswith('- ')), None)
+    if first_source is None:
+        return False
+    source_lines = []
+    for line in lines[first_source:]:
+        if line.startswith('- '):
+            source_lines.append(line)
+            continue
+        if not re.match(r'^\*\*[^*]+\*\*$', line):
+            return False
+        break
+    references = 0
+    for line in source_lines:
+        parts = line[2:].split(' — ', 1)
+        if len(parts) != 2:
+            return False
+        source, reason = (part.strip() for part in parts)
+        if (not source or not reason or source == '[Path or URL]'
+                or reason == '[Why the agent needs it]'):
+            return False
+        targets = re.findall(r'\[[^\]]+\]\(([^)\s]+)\)', source)
+        if targets:
+            references += len(targets)
+            continue
+        if re.search(r'\s', source) or not (re.match(r'https?://', source)
+                                              or '/' in source
+                                              or re.search(r'\.[A-Za-z0-9]+$', source)):
+            return False
+        references += 1
+    return 1 <= references <= 5
 
 
 def read_document(root, name):
@@ -444,7 +486,7 @@ def feature_status(root, path):
               'current': pending[0][0] + ' — ' + pending[0][1] if pending else 'None',
               'completed': len(passed), 'total': len(rows), 'next': 'Fill the Brief and record human approval.',
               'time': execution_time(root, path.name)}
-    if not approved(brief) or not field(brief, 'Goal'):
+    if not approved(brief) or not field(brief, 'Goal') or not valid_context(brief):
         return result
     result['stage'] = 'Tasks'
     if not rows:
