@@ -18,8 +18,8 @@ import urllib.request
 ARCHIVE_URL = 'https://codeload.github.com/varelycode/ggez/tar.gz/refs/heads/main'
 LIMIT = 10 * 1024 * 1024
 MARKER = '# ggez-managed-launcher-v1\n'
-REQUIRED = ('scripts/ggez.py', 'templates/prd.md', 'templates/tasks.md',
-            'templates/evidence.md', 'templates/review.md', 'templates/agent-rules.md')
+REQUIRED = ('scripts/ggez.py', 'scripts/install.py', 'templates/prd.md', 'templates/tasks.md',
+            'templates/agent-rules.md')
 OPTIONAL = ('scripts/tasks.py', 'templates/ralph/.agent/tasks.json',
             'templates/ralph/.agent/tasks/TASK-1.json',
             'templates/ralph/.agent/tasks/TASK-2.json')
@@ -161,12 +161,16 @@ def main(argv=None):
         require(sys.version_info >= (3, 9), 'Python 3.9+ is required.')
         require(sys.platform in ('darwin', 'linux'), 'Supported platforms: macOS and Linux.')
         payload = local_payload(args.source) if args.source else download_payload()
+        current_launcher = args.prefix.resolve() / 'bin/ggez'
+        previous = current_launcher.read_bytes() if current_launcher.is_file() else None
         launcher = install(payload, args.prefix)
     except (InstallError, OSError, ValueError, tarfile.TarError,
             subprocess.SubprocessError, urllib.error.URLError) as exc:
         print('ggez: ' + str(exc), file=sys.stderr)
         return 1
-    print('Installed: ' + str(launcher))
+    active = launcher.read_bytes()
+    action = 'Installed' if previous is None else ('Already current' if previous == active else 'Updated')
+    print(action + ': ' + str(launcher))
     if shutil.which('ggez') != str(launcher):
         print('For this terminal: export PATH=' + shlex.quote(str(launcher.parent)) + ':"$PATH"')
     print('Try: ggez --help')

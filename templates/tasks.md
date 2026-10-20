@@ -4,8 +4,6 @@
 
 **Brief:** {{Brief link}}
 
-**Evidence:** {{Evidence link}}
-
 **Approval:** [Reviewer and date; leave blank until approved]
 
 **Mode:** [Verified / Unverified; Verified by default]
@@ -14,9 +12,10 @@
 
 - [ ] TASK-1 — Verify project prerequisites and access
 
-  - Done when: {{Required tools, access, and test data are verified, with any blocker recorded in Evidence}}; No secrets or private note contents appear in committed artifacts.
+  - **Result:** Pending
+  - Done when: {{Required tools, access, and test data are verified, with any blocker reported before implementation}}; No secrets or private note contents appear in committed artifacts.
   - Verify: prerequisites: {{List exact safe checks and their expected results; record unavailable access without exposing secret values}}
-  - Must not: start feature work while a required prerequisite is blocked.; copy secret values into task files, logs, or evidence.
+  - Must not: start feature work while a required prerequisite is blocked.; copy secret values into task files or logs.
 
   <details>
   <summary>Implementation details</summary>
@@ -33,6 +32,7 @@
 
 - [ ] TASK-2 — {{One bounded feature outcome}}
 
+  - **Result:** Pending
   - Done when: {{Observable success result}}; {{Relevant failure or recovery result}}
   - Verify: behavior and recovery: {{Exact focused checks and expected results, including native Mac checks where relevant}}
   - Must not: {{Specific excluded behavior from the Brief}}
@@ -53,14 +53,12 @@
 
 ## Ralph rules
 
-1. Verified is the default: complete one approved task, test it, record evidence, then wait for human review. Explicit Unverified mode continues approved tasks without per-task review; tests, evidence, stop conditions, and final human acceptance remain required.
+1. Verified is the default: complete one approved task, test it, set Result to `Pass`, check it, then wait for human review. Explicit Unverified mode continues approved tasks after tests; stop conditions and final human acceptance remain required.
 2. Stay within its scope and honor the Brief’s stop conditions.
-3. Record checks, failures, corrections, and results in Evidence. Keep secrets and private data out.
-4. Record verified completion against the executed task ID and revision. Checkboxes alone do not prove completion; preserve this editable source.
-5. Stop on scope expansion or repeated failure; record the blocker in Evidence.
+3. Use exactly one Result per task: `Pending`, `Pass`, `Fail`, `Blocked`, or `Interrupted`. A task is checked exactly when its Result is `Pass`.
+4. Report checks, failures, and corrections in the active agent run. Keep secrets and private data out.
+5. Stop on scope expansion or repeated failure and set the current task Result before handing off.
 
 ## Status
 
 **Next task:** TASK-1 — Verify project prerequisites and access
-
-**Blocked by:** [Known blocker, or Not checked]

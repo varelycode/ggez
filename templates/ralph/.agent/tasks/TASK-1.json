@@ -4,7 +4,7 @@
   "category": "setup",
   "description": "Check the agreed Brief and the prerequisites needed to build and verify this slice.",
   "acceptanceCriteria": [
-    "{{Required tools, access, and test data are verified, with any blocker recorded in Evidence}}",
+    "{{Required tools, access, and test data are verified, with any blocker reported before implementation}}",
     "No secrets or private note contents appear in committed artifacts."
   ],
   "steps": [
@@ -25,6 +25,6 @@
   "estimatedComplexity": "low",
   "technicalNotes": [
     "Must not: start feature work while a required prerequisite is blocked.",
-    "Must not: copy secret values into task files, logs, or evidence."
+    "Must not: copy secret values into task files or logs."
   ]
 }

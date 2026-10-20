@@ -54,5 +54,3 @@ Fill in the two sections marked **Required**: Slice and Outcome. Leave other sec
 ## Related notes
 
 - Tasks: [Add link when created]
-- Evidence: [Add link when created]
-- Review: [Add link when created]

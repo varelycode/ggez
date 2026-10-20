@@ -1,15 +1,17 @@
 ## ggez workflow
 
-- Use `ggez plan "Feature title"` for a blank Brief, `ggez plan` to select a feature, and `ggez status` to read recorded progress. These commands do not run an agent.
+- Use `ggez plan "Feature title"` for a blank Brief, `ggez plan` to select a feature, `ggez status` to read recorded progress, and `ggez update` to update an installed CLI. These commands do not run an agent.
 
 - Use `.ggez/templates/` for feature documents. Start a blank Brief with only its requested title. The user fills Slice and Outcome; never fill those required sections. Explain fields when asked and propose optional sections only on request.
-- Keep `brief.md`, `tasks.md`, one `evidence.md`, and one `review.md` in `features/<feature-id>/`. Create the feature folder when planning starts. Keep stable feature and TASK-N IDs.
+- Keep `brief.md` and `tasks.md` in `features/<feature-id>/`. Create the feature folder when planning starts. Keep stable feature and TASK-N IDs.
 - Get human approval of the Brief, then the exact Markdown task list, before implementation. `tasks.md` is the editable task source. Changed instructions need fresh approval; never reuse approval for a changed task set.
-- Verified is the default: execute one approved task, test it, append checks, failures, corrections, and results under its ID in Evidence, then wait for human review. Unverified requires explicit user instruction and skips per-task review only. Tests, evidence, stop conditions, and final human acceptance still apply.
+- Each task has exactly one Result: `Pending`, `Pass`, `Fail`, `Blocked`, or `Interrupted`. Check a task exactly when its Result is `Pass`.
+- Verified is the default: execute one approved task, test it, update its Result, then wait for human review. Unverified requires explicit user instruction and skips per-task review only. Tests, stop conditions, and final human acceptance still apply.
 - Stop on failures, blockers, or scope expansion. Keep secrets out of documents. Follow existing project conventions; surface conflicting rules for resolution before working.
-- Assess the full outcome against the Brief in Review. Finishing tasks does not mean the user accepted the feature. Record acceptance only when the user gives it.
+- Report checks, failures, and corrections in the active agent run or pull request. Do not create another workflow document for them.
+- Assess the full outcome against the Brief acceptance checks. Only the user checks final acceptance; finishing tasks does not mean the user accepted the feature.
 - Direct agent work uses approved Markdown. This CLI does not launch or supervise a runner. Automatic conversion, run snapshots, usage collection, and the companion skill are unavailable.
 - If a separately verified Ralph integration is used, keep its fixed approved Markdown, approval record, and complete generated inputs under `.ggez/features/<feature-id>/runs/<run-id>/`. Validate inputs and dependencies before execution; stop if conversion fails. Later edits need a newly approved snapshot. Preserve prior runs; never synchronize edits into an active run.
 - Usage records, when supplied by an execution system, belong in `.ggez/features/<feature-id>/usage.jsonl`. Keep unique attempt IDs, stage/task IDs, runner/model, start/end times, outcomes, and reported token counts. Include retries, deduplicate events, separate execution from approval waits, mark partial timing, and keep cached tokens separate. Never estimate tokens or substitute account totals. Missing data is unavailable; these instructions do not collect usage.
-- Status counts a checked task only with its latest Evidence Result: Pass and nonempty Checks. Record Human review: Approved only after user review. Optional usage records report execution_seconds excluding approval waits and timing_complete; missing timing is unavailable. Duplicate attempt IDs must agree.
+- Status counts a task only when it is checked with Result `Pass`; inconsistent task state is invalid. Complete requires every task to pass and every Brief acceptance check to be checked. Optional usage records report execution_seconds excluding approval waits and timing_complete; missing timing is unavailable. Duplicate attempt IDs must agree.
 - State is Ready, Running, Needs attention, or Complete; stage is Brief, Tasks, Implementation, or Review. Needs attention reasons are Approval required, Check failed, Missing prerequisite, or Run interrupted. Running requires a live signal; Complete requires checks and human acceptance. Checkboxes alone prove neither.

@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import os
 from pathlib import Path
 import shutil
@@ -34,6 +35,18 @@ class InitTests(unittest.TestCase):
         result = self.run_init('--yes')
         self.assertEqual(result.returncode, 0, result.stderr)
         return result
+
+    def legacy_install(self):
+        self.install()
+        manifest = json.loads((self.root / ggez.MANIFEST).read_text())
+        manifest['version'] = 1
+        for template in ggez.LEGACY_TEMPLATES:
+            name = '.ggez/templates/' + template
+            content = ('legacy ' + template + ' fixture\n').encode()
+            path = self.root / name
+            path.write_bytes(content)
+            manifest['files'][name] = ggez.digest(content)
+        (self.root / ggez.MANIFEST).write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
 
     def test_dry_run_previews_without_creating_files(self):
         result = self.run_init('--dry-run')
@@ -103,6 +116,62 @@ class InitTests(unittest.TestCase):
         self.assertTrue(agents.read_text().endswith('\nUser suffix\n'))
         self.assertEqual(agents.read_text().count(ggez.START), 1)
 
+    def test_legacy_manifest_removes_retired_templates_but_not_feature_documents(self):
+        self.legacy_install()
+        feature = self.root / 'features/example'
+        feature.mkdir(parents=True)
+        (feature / 'evidence.md').write_text('keep feature evidence\n')
+        (feature / 'review.md').write_text('keep feature review\n')
+        preview = self.run_init('--dry-run')
+        self.assertEqual(preview.returncode, 0, preview.stderr)
+        for template in ggez.LEGACY_TEMPLATES:
+            self.assertIn('Remove .ggez/templates/' + template, preview.stdout)
+        result = self.run_init('--yes')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for template in ggez.LEGACY_TEMPLATES:
+            self.assertFalse((self.root / '.ggez/templates' / template).exists())
+        self.assertEqual((feature / 'evidence.md').read_text(), 'keep feature evidence\n')
+        self.assertEqual((feature / 'review.md').read_text(), 'keep feature review\n')
+        manifest = json.loads((self.root / ggez.MANIFEST).read_text())
+        self.assertEqual(manifest['version'], ggez.MANIFEST_VERSION)
+        self.assertEqual(set(manifest['files']), {
+            'AGENTS.md', *('.ggez/templates/' + name for name in ggez.TEMPLATES)})
+
+    def test_edited_legacy_template_blocks_upgrade_without_writes(self):
+        self.legacy_install()
+        path = self.root / '.ggez/templates/evidence.md'
+        path.write_text('user customization\n')
+        before = self.snapshot()
+        result = self.run_init('--yes')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('edited legacy template', result.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_missing_legacy_template_is_treated_as_already_removed(self):
+        self.legacy_install()
+        (self.root / '.ggez/templates/evidence.md').unlink()
+        result = self.run_init('--yes')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.root / '.ggez/templates/review.md').exists())
+        self.assertEqual(json.loads((self.root / ggez.MANIFEST).read_text())['version'],
+                         ggez.MANIFEST_VERSION)
+
+    def test_legacy_template_delete_failure_rolls_back_upgrade(self):
+        self.legacy_install()
+        original = self.snapshot()
+        before, desired = ggez.plan_init(self.root)
+        target = self.root / '.ggez/templates/review.md'
+        real_unlink = Path.unlink
+        def fail_review(path, *args, **kwargs):
+            if path == target:
+                raise PermissionError('fixture: delete denied')
+            return real_unlink(path, *args, **kwargs)
+        with mock.patch.object(Path, 'unlink', fail_review):
+            with self.assertRaises(PermissionError):
+                ggez.apply_init(self.root, before, desired)
+        self.assertEqual(self.snapshot(), original)
+        self.assertFalse(list(self.root.glob('.ggez-init-*')))
+
     def test_edited_template_blocks_all_writes(self):
         self.install()
         (self.root / '.ggez/templates/prd.md').write_text('User customization\n')
@@ -139,6 +208,15 @@ class InitTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn('unmarked ggez section', result.stderr)
         self.assertEqual(self.snapshot(), before)
+
+    def test_project_specific_ggez_heading_does_not_block_init(self):
+        path = self.root / 'AGENTS.md'
+        original = '# Project\n\n## ggez Init Requirements\nDevelop the initializer.\n'
+        path.write_text(original)
+        result = self.run_init('--yes')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(path.read_text().startswith(original))
+        self.assertEqual(path.read_text().count(ggez.START), 1)
 
     def test_malformed_markers_require_resolution(self):
         for text in (ggez.START, ggez.END + ggez.START, ggez.START * 2 + ggez.END):
@@ -252,8 +330,10 @@ class InitTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         rules = (self.root / 'AGENTS.md').read_text()
         for required in ('Slice and Outcome', 'Verified', 'Unverified', 'usage.jsonl',
-                         'evidence.md', 'review.md', 'fresh approval', 'live signal'):
+                         'brief.md', 'tasks.md', 'fresh approval', 'live signal', 'Result'):
             self.assertIn(required, rules)
+        self.assertNotIn('evidence.md', rules)
+        self.assertNotIn('review.md', rules)
 
 
 if __name__ == '__main__':

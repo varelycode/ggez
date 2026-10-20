@@ -48,8 +48,9 @@ class WorkflowTests(unittest.TestCase):
                     brief.write_text(text.replace('[What should this feature let the person do?]',
                                                   'Sign in').replace('[Reviewer and date; leave blank until approved]',
                                                                     'Fixture reviewer, 2026-10-06'))
-                    (feature / 'tasks.md').write_text('# Tasks\n\n**Approval:** Fixture reviewer\n\n**Mode:** Unverified\n\n## Queue\n\n- [x] TASK-1 — Test login\n')
-                    (feature / 'evidence.md').write_text('# Evidence\n\n## TASK-1\n\n**Result:** Pass\n\n**Checks:** Fixture login test passed\n')
+                    (feature / 'tasks.md').write_text(
+                        '# Tasks\n\n**Approval:** Fixture reviewer\n\n## Queue\n\n'
+                        '- [x] TASK-1 — Test login\n\n  - **Result:** Pass\n')
                     output = run('status')
                     self.assertIn('1/1 (100%)', output)
                     self.assertIn('Stage: Review', output)
@@ -57,11 +58,13 @@ class WorkflowTests(unittest.TestCase):
                     self.assertNotIn('Goal:', output)
                     self.assertNotIn('Next:', output)
                     self.assertIn('Unavailable', output)
-                    (feature / 'review.md').write_text('# Review\n\n## Acceptance\n\n- [x] Checks reviewed\n\n## Decision\n\n- [x] Accepted\n')
+                    brief.write_text(brief.read_text().replace('- [ ]', '- [x]'))
                     accepted_output = run('status')
                     self.assertIn('Stage: Review', accepted_output)
                     self.assertIn('1/1 (100%)', accepted_output)
-                    self.assertIn(str(feature / 'review.md'), accepted_output)
+                    self.assertIn(str(feature / 'brief.md'), accepted_output)
+                    self.assertNotIn('evidence.md', accepted_output)
+                    self.assertNotIn('review.md', accepted_output)
                     self.assertNotIn('State:', accepted_output)
                     self.assertIn('no changes', run('init'))
                     if kind == 'existing':
