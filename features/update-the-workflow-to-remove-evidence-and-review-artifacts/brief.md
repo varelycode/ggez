@@ -56,7 +56,7 @@ Fill in the two sections marked **Required**: Slice and Outcome. Leave other sec
 - [x] `python3 -B -m unittest discover -s tests -v` passes, including fresh-install, upgrade, plan, and status coverage.
 - [x] A local install followed by `ggez init`, `ggez plan`, and `ggez status` completes without creating or requesting Evidence or Review files.
 - [x] `ggez update` downloads and validates the latest published release, reports whether it changed the active release, and works without a source checkout. Download, validation, or activation failure leaves the previous launcher and release usable.
-- [ ] Viviana reviewed the finished workflow and accepted the outcome.
+- [x] Viviana reviewed the finished workflow and accepted the outcome.
 
 ## Safety
 
