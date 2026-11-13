@@ -4,6 +4,8 @@
 
 - Added immutable Brief and task revision lineage, revision commands, stale-task checks, and clearer CLI structure. [PR #3](https://github.com/varelycode/ggez/pull/3).
 
+- Added SemVer release identifiers, `ggez --version`, installer version validation, and the `v0.1.0` tag. [PR #7](https://github.com/varelycode/ggez/pull/7).
+
 ## 2026-10-20
 
 - Removed Evidence/Review and added Results plus `ggez update`. [#2](https://github.com/varelycode/ggez/pull/2).
