@@ -10,14 +10,12 @@ import tempfile
 import unittest
 from unittest import mock
 import urllib.error
+from scripts import ggez as ggez_cli
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('install', ROOT / 'scripts/install.py')
 installer = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(installer)
-CLI_SPEC = importlib.util.spec_from_file_location('ggez_cli', ROOT / 'scripts/ggez.py')
-ggez_cli = importlib.util.module_from_spec(CLI_SPEC)
-CLI_SPEC.loader.exec_module(ggez_cli)
 
 
 class InstallerTests(unittest.TestCase):
@@ -54,6 +52,8 @@ class InstallerTests(unittest.TestCase):
         help_result = self.help_output(launcher)
         self.assertEqual(help_result.returncode, 0, help_result.stderr)
         self.assertIn('usage: ggez', help_result.stdout)
+        self.assertIn('revise', help_result.stdout)
+        self.assertIn('check', help_result.stdout)
         self.assertIn('export PATH=', result.stdout)
         self.assertFalse((self.root / '.zshrc').exists())
         self.assertFalse((self.root / '.bashrc').exists())

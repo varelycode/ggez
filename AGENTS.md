@@ -98,12 +98,13 @@ Automatic conversion and run snapshots are planned. `scripts/tasks.py` currently
 <!-- ggez:start -->
 ## ggez workflow
 
-- Use `ggez plan "Feature title"` for a blank Brief, `ggez plan` to select a feature, `ggez status` to read recorded progress, and `ggez update` to update an installed CLI. These commands do not run an agent.
+- Use `ggez plan "Feature title"` for a blank Brief, `ggez revise brief` and `ggez revise tasks` to record immutable revisions, `ggez check` to validate lineage, `ggez status` to read progress, and `ggez update` to update the CLI. Omit a feature argument to select one. These commands do not run an agent; only `plan`, `revise`, `init`, and `update` write.
 
 - Use `.ggez/templates/` for feature documents. Start a blank Brief with only its requested title. The user fills Slice and Outcome; never fill those required sections. Explain fields when asked and propose optional sections only on request.
 - Before preparing tasks, require Context with one to five direct paths or URLs and a reason for each, or exactly `None beyond AGENTS.md and this Brief`. Read those sources. Do not load references found inside them unless the work requires it. Invalid or placeholder Context stays at Brief approval.
 - Keep `brief.md` and `tasks.md` in `features/<feature-id>/`. Create the feature folder when planning starts. Keep stable feature and TASK-N IDs.
-- Get human approval of the Brief, then the exact Markdown task list, before implementation. `tasks.md` is the editable task source. Changed instructions need fresh approval; never reuse approval for a changed task set.
+- Record the completed Brief with `ggez revise brief`, then get human approval of that revision. Generate tasks from it, record them with `ggez revise tasks`, then get approval of that task revision before implementation. `tasks.md` is the editable task source.
+- After a Brief or task definition changes, run its `ggez revise` command and get fresh approval. A new revision clears the old approval; a new Brief revision leaves existing tasks stale until they are regenerated and revised. Result and completion-state edits do not create revisions. Never reuse approval for changed instructions.
 - Each task has exactly one Result: `Pending`, `Pass`, `Fail`, `Blocked`, or `Interrupted`. Check a task exactly when its Result is `Pass`.
 - Verified is the default: execute one approved task, test it, update its Result, then wait for human review. Unverified requires explicit user instruction and skips per-task review only. Tests, stop conditions, and final human acceptance still apply.
 - Stop on failures, blockers, or scope expansion. Keep secrets out of documents. Follow existing project conventions; surface conflicting rules for resolution before working.

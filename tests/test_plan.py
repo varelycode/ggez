@@ -1,15 +1,12 @@
-import importlib.util
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
 from unittest import mock
+from scripts import ggez
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location('ggez', ROOT / 'scripts/ggez.py')
-ggez = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(ggez)
 
 
 class PlanTests(unittest.TestCase):
@@ -40,7 +37,8 @@ class PlanTests(unittest.TestCase):
         self.assertIn('## Context — **Required**', brief.read_text())
         self.assertIn('[Path or URL]', brief.read_text())
         for required in ('Codex', 'Cursor', 'Claude', 'Verified', 'Unverified',
-                         'never fill', 'approve', 'Stop on failures', str(brief)):
+                         'never fill', 'approve', 'Stop on failures', 'ggez revise brief',
+                         'ggez revise tasks', 'ggez check', str(brief)):
             self.assertIn(required, result.stdout)
         self.assertIn('read the direct sources in Context', result.stdout)
         self.assertIn('Do not load references found inside them', result.stdout)

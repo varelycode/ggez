@@ -1,4 +1,3 @@
-import importlib.util
 import json
 from pathlib import Path
 import re
@@ -6,11 +5,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from scripts import ggez
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location('ggez', ROOT / 'scripts/ggez.py')
-ggez = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(ggez)
 
 
 class StatusTests(unittest.TestCase):
@@ -31,6 +28,10 @@ class StatusTests(unittest.TestCase):
                       '- [ ] TASK-2 — Login\n\n  - **Result:** Pending\n')
         self.write('brief.md', self.brief)
         self.write('tasks.md', self.tasks)
+        ggez.revise_document(self.root, self.feature, 'brief')
+        ggez.revise_document(self.root, self.feature, 'tasks')
+        self.brief = (self.feature / 'brief.md').read_text()
+        self.tasks = (self.feature / 'tasks.md').read_text()
 
     def write(self, name, content):
         (self.feature / name).write_text(content)
@@ -79,19 +80,18 @@ class StatusTests(unittest.TestCase):
         self.assertEqual((result['stage'], result['reason']), ('Brief', 'Approval required'))
 
     def test_context_accepts_references_or_exact_none_statement(self):
-        self.assertEqual(self.status()['stage'], 'Implementation')
+        self.assertTrue(ggez.valid_context(self.brief))
         notes = self.brief.replace(
             '## Context — **Required**\n\n',
             '## Context — **Required**\n\nRead these sources before tasks.\n\n').replace(
             '## Acceptance checks',
             '**Architecture**\n\n- One CLI reads the workflow files.\n\n## Acceptance checks')
-        self.write('brief.md', notes)
-        self.assertEqual(self.status()['stage'], 'Implementation')
+        self.assertTrue(ggez.valid_context(notes))
         context = ('## Context — **Required**\n\n'
                    'None beyond AGENTS.md and this Brief\n\n')
-        self.write('brief.md', re.sub(r'## Context — \*\*Required\*\*\n.*?(?=## Acceptance)',
-                                      context, self.brief, flags=re.S))
-        self.assertEqual(self.status()['stage'], 'Implementation')
+        exact_none = re.sub(r'## Context — \*\*Required\*\*\n.*?(?=## Acceptance)',
+                            context, self.brief, flags=re.S)
+        self.assertTrue(ggez.valid_context(exact_none))
 
     def test_invalid_context_requires_brief_approval(self):
         invalid = [
@@ -233,7 +233,9 @@ class StatusTests(unittest.TestCase):
             self.assertIn(value, result.stdout)
         labels = [line.split(':', 1)[0] for line in result.stdout.splitlines()]
         self.assertEqual(labels, ['Feature', 'Current task', 'Stage', 'Completed',
-                                  'Execution time', 'brief.md', 'tasks.md'])
+                                  'Execution time', 'Brief revision', 'Brief created',
+                                  'Task revision', 'Task created', 'Lineage',
+                                  'brief.md', 'tasks.md'])
         for name in ('brief.md', 'tasks.md'):
             self.assertIn(str(self.feature / name), result.stdout)
         self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
