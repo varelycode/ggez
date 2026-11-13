@@ -11,7 +11,7 @@
     {
       "step": 1,
       "description": "Read the Brief and identify required setup",
-      "details": "Read .agent/prd/PRD.md. Use its Prerequisites field; record only relevant tools, services, environment variable names, and test data.",
+      "details": "Read .agent/prd/PRD.md and its direct Context. Derive setup from the approved Outcome, Scope, Safety, and codebase; record only relevant tools, services, environment variable names, and test data.",
       "pass": false
     },
     {
