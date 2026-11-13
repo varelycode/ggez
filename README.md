@@ -1,6 +1,6 @@
 # ggez
 
-ggez keeps feature work in an outcome Brief and task plan, with immutable revision lineage between them.
+ggez keeps feature work in a Brief and task plan with immutable revision lineage.
 
 1. Fill the Brief, record its revision, and get approval.
 2. Generate tasks from that revision, record them, and get approval.
@@ -19,6 +19,7 @@ Requires macOS or Linux, Python 3.9+, and curl.
 
 ```sh
 ggez init
+ggez --version
 ggez plan "my next feature"
 ggez revise brief
 ggez revise tasks

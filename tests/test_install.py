@@ -46,6 +46,10 @@ class InstallerTests(unittest.TestCase):
         return subprocess.run([str(launcher), '--help'], env=self.env,
                               capture_output=True, text=True)
 
+    def version_output(self, launcher):
+        return subprocess.run([str(launcher), '--version'], env=self.env,
+                              capture_output=True, text=True)
+
     def archive(self, names=None):
         names = dict(self.payload if names is None else names)
         names.setdefault(installer.MANIFEST, (ROOT / installer.MANIFEST).read_bytes())
@@ -74,6 +78,9 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('usage: ggez', help_result.stdout)
         self.assertIn('revise', help_result.stdout)
         self.assertIn('check', help_result.stdout)
+        self.assertEqual(self.version_output(launcher).stdout,
+                         'ggez ' + ggez_cli.VERSION + '\n')
+        self.assertIn('Version: ' + ggez_cli.VERSION, result.stdout)
         self.assertIn('export PATH=', result.stdout)
         self.assertFalse((self.root / '.zshrc').exists())
         self.assertFalse((self.root / '.bashrc').exists())
@@ -87,7 +94,7 @@ class InstallerTests(unittest.TestCase):
         payload = self.legacy_payload()
         self.assertNotIn(installer.MANIFEST, payload)
         launcher = installer.install(payload, self.prefix)
-        for command in (('--help',), ('revise', '--help'), ('check', '--help')):
+        for command in (('--help',), ('--version',), ('revise', '--help'), ('check', '--help')):
             with self.subTest(command=command):
                 result = subprocess.run([str(launcher), *command], env=self.env,
                                         capture_output=True, text=True)
@@ -101,6 +108,10 @@ class InstallerTests(unittest.TestCase):
         result = subprocess.run([str(launcher), 'revise', '--help'], env=self.env,
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_cli_version_uses_semver(self):
+        self.assertRegex(ggez_cli.VERSION,
+                         r'^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')
 
     def test_default_install_is_user_local(self):
         result = subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/install.py'),
@@ -138,6 +149,19 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(launcher.read_bytes(), previous)
         self.assertEqual(self.help_output(launcher).returncode, 0)
         self.assertFalse(list(self.prefix.rglob('.staging-*')))
+
+    def test_invalid_release_version_keeps_previous_launcher(self):
+        launcher = installer.install(self.payload, self.prefix)
+        previous = launcher.read_bytes()
+        changed = dict(self.payload)
+        assignment = ("VERSION = '" + ggez_cli.VERSION + "'").encode()
+        changed['scripts/ggez.py'] = changed['scripts/ggez.py'].replace(
+            assignment, b"VERSION = 'not-semver'")
+        with self.assertRaisesRegex(installer.InstallError, 'version check failed'):
+            installer.install(changed, self.prefix)
+        self.assertEqual(launcher.read_bytes(), previous)
+        self.assertEqual(self.version_output(launcher).stdout,
+                         'ggez ' + ggez_cli.VERSION + '\n')
 
     def test_failed_activation_keeps_previous_launcher(self):
         launcher = installer.install(self.payload, self.prefix)
