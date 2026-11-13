@@ -25,7 +25,7 @@ LEGACY_TEMPLATES = ('evidence.md', 'review.md')
 BUNDLE = Path(__file__).resolve().parents[1] / 'templates'
 MANIFEST = '.ggez/install.json'
 MANIFEST_VERSION = 2
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 
 
 # Revision identities

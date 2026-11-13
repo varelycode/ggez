@@ -9,6 +9,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_current_guidance_omits_retired_brief_fields(self):
+        paths = (
+            ROOT / 'AGENTS.md',
+            ROOT / 'docs/workflow.md',
+            ROOT / 'templates/agent-rules.md',
+            ROOT / 'templates/prd.md',
+            ROOT / 'templates/tasks.md',
+            ROOT / 'templates/ralph/.agent/tasks/TASK-1.json',
+        )
+        retired = ('Slice and Outcome', 'Prerequisites field', 'Data and systems touched',
+                   'Target cycle', 'Stop the cycle if', '## Related notes')
+        for path in paths:
+            with self.subTest(path=path):
+                text = path.read_text()
+                for phrase in retired:
+                    self.assertNotIn(phrase, text)
+
     def test_installed_workflow_in_fresh_and_existing_projects(self):
         with tempfile.TemporaryDirectory(prefix='ggez-walkthrough-') as temp:
             root = Path(temp).resolve()
