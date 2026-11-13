@@ -25,6 +25,7 @@ LEGACY_TEMPLATES = ('evidence.md', 'review.md')
 BUNDLE = Path(__file__).resolve().parents[1] / 'templates'
 MANIFEST = '.ggez/install.json'
 MANIFEST_VERSION = 2
+VERSION = '0.1.0'
 
 
 # Revision identities
@@ -1047,6 +1048,7 @@ def update_command(_args):
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog='ggez', description='Plan features, approve tasks, and track progress.')
+    parser.add_argument('--version', action='version', version='%(prog)s ' + VERSION)
     commands = parser.add_subparsers(dest='command')
     init = commands.add_parser('init', help='Preview and install ggez in a project.')
     init.add_argument('directory', nargs='?', type=Path, default=Path('.'))

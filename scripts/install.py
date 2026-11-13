@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import shlex
 import shutil
 import subprocess
@@ -24,6 +25,9 @@ BASE_REQUIRED = {
     'scripts/ggez.py', 'scripts/install.py',
     'templates/prd.md', 'templates/tasks.md', 'templates/agent-rules.md',
 }
+VERSION_OUTPUT = re.compile(
+    r'^ggez (0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+    r'(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?\n$')
 
 
 class InstallError(ValueError):
@@ -143,6 +147,12 @@ def safe_directory(path):
     path.mkdir(parents=True, exist_ok=True)
 
 
+def command_version(command, message):
+    result = subprocess.run(command, capture_output=True, text=True, timeout=15)
+    require(result.returncode == 0 and bool(VERSION_OUTPUT.fullmatch(result.stdout)), message)
+    return result.stdout.strip().split(' ', 1)[1]
+
+
 def check_release(release, payload):
     for name, content in payload.items():
         path = release / name
@@ -153,6 +163,8 @@ def check_release(release, payload):
                             capture_output=True, text=True, timeout=15)
     require(result.returncode == 0 and 'ggez' in result.stdout,
             'Release help check failed; previous installation is unchanged.')
+    command_version([sys.executable, '-B', str(release / 'scripts/ggez.py'), '--version'],
+                    'Release version check failed; previous installation is unchanged.')
 
 
 def install(payload, prefix):
@@ -197,6 +209,8 @@ def install(payload, prefix):
                                 text=True, timeout=15)
         require(result.returncode == 0 and 'ggez' in result.stdout,
                 'Launcher check failed; previous installation is unchanged.')
+        command_version([str(temp_launcher), '--version'],
+                        'Launcher version check failed; previous installation is unchanged.')
         # Replacing one file activates the checked release; older releases stay intact.
         os.replace(temp_launcher, launcher)
     finally:
@@ -225,6 +239,8 @@ def main(argv=None):
     active = launcher.read_bytes()
     action = 'Installed' if previous is None else ('Already current' if previous == active else 'Updated')
     print(action + ': ' + str(launcher))
+    print('Version: ' + command_version(
+        [str(launcher), '--version'], 'Installed release has an invalid version.'))
     if shutil.which('ggez') != str(launcher):
         print('For this terminal: export PATH=' + shlex.quote(str(launcher.parent)) + ':"$PATH"')
     print('Try: ggez --help')
