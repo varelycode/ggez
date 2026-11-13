@@ -37,7 +37,7 @@ ggez: a reusable workflow kit for humans and coding agents. Python 3 task helper
 
 - Keep tools in `scripts/` and tests in `tests/`.
 - List installable files in `scripts/install-manifest.json`. New runtime dependencies must remain installable by the previous updater; test its legacy allowlist.
-- Use SemVer from `scripts/ggez.py`. Bump it for each merged installable payload change and tag that merge `vX.Y.Z`; keep content hashes as integrity identifiers.
+- Use SemVer from `scripts/ggez.py`. CI requires an increase when the install-manifest payload changes. Tag the merge `vX.Y.Z`; keep content hashes as integrity identifiers.
 - Follow existing Python style.
 - Preserve edits.
 - Never commit secrets.
