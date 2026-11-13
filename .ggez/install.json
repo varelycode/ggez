@@ -1,8 +1,8 @@
 {
   "files": {
-    ".ggez/templates/prd.md": "14e15869229252782d17b61c91d4b0e5cdbe927934d0ec4a32c08a353d54df82",
-    ".ggez/templates/tasks.md": "ff2a85735f18eb9e4b744c6dd342640d4c8d2eac8e479e2ed4d41cf95bd87402",
-    "AGENTS.md": "9a7b9552b342201753a6db0b96093744f956cd0e1dc6fdad54687cbf26cbd53f"
+    ".ggez/templates/prd.md": "81a56fdadf0d7542f0de33beeaf3f4c867113931eab242130aee63551b48c62f",
+    ".ggez/templates/tasks.md": "08f4077e42be5977af1857f7b06d192dac66b5fca75607e2177cb076ed512687",
+    "AGENTS.md": "c42498172c393c821b20466cfda922909c609013d67ca13b6002b7ed2c77310d"
   },
   "version": 2
 }

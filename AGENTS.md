@@ -20,8 +20,8 @@ ggez: a reusable workflow kit for humans and coding agents. Python 3 task helper
 ## Feature Workflow
 
 - To start a feature, create a blank Brief from the template, retaining only the requested title. Leave all fields as placeholders; do not infer goals, scope, ownership, status, or acceptance checks.
-- Mark Slice and Outcome as **Required** and ask the user to fill both sections in one handoff. Explain that the remaining sections may stay blank initially and approval comes after review.
-- Do not default to a one-question-at-a-time interview. Explain required fields on request, but never fill Slice or Outcome. Fill or propose optional sections only when asked. When clarification is needed, present a short, bounded set of missing details.
+- Mark Outcome as **Required** and ask the user to fill Goal, Why now, and User-visible result in one handoff. Example is optional. Explain that the remaining sections may stay blank initially and approval comes after review.
+- Do not default to a one-question-at-a-time interview. Explain required fields on request, but never fill the required Outcome fields. Fill or propose optional sections only when asked. When clarification is needed, present a short, bounded set of missing details.
 - Follow the [workflow](docs/workflow.md), approved Brief and tasks, and active issue.
 - Report checks and blockers in the active agent run or pull request.
 - Keep `brief.md` and `tasks.md` per feature. Each task has exactly one Result: `Pending`, `Pass`, `Fail`, `Blocked`, or `Interrupted`; check it exactly when Result is `Pass`.
@@ -102,7 +102,7 @@ Automatic conversion and run snapshots are planned. `scripts/tasks.py` currently
 
 - Use `ggez plan "Feature title"` for a blank Brief, `ggez revise brief` and `ggez revise tasks` to record immutable revisions, `ggez check` to validate lineage, `ggez status` to read progress, and `ggez update` to update the CLI. Omit a feature argument to select one. These commands do not run an agent; only `plan`, `revise`, `init`, and `update` write.
 
-- Use `.ggez/templates/` for feature documents. Start a blank Brief with only its requested title. The user fills Slice and Outcome; never fill those required sections. Explain fields when asked and propose optional sections only on request.
+- Use `.ggez/templates/` for feature documents. Start a blank Brief with only its requested title. The user fills Goal, Why now, and User-visible result; never fill those required Outcome fields. Example is optional. Explain fields when asked and propose optional sections only on request.
 - Before preparing tasks, require Context with one to five direct paths or URLs and a reason for each, or exactly `None beyond AGENTS.md and this Brief`. Read those sources. Do not load references found inside them unless the work requires it. Invalid or placeholder Context stays at Brief approval.
 - Keep `brief.md` and `tasks.md` in `features/<feature-id>/`. Create the feature folder when planning starts. Keep stable feature and TASK-N IDs.
 - Record the completed Brief with `ggez revise brief`, then get human approval of that revision. Generate tasks from it, record them with `ggez revise tasks`, then get approval of that task revision before implementation. `tasks.md` is the editable task source.

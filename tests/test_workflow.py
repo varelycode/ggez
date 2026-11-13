@@ -46,10 +46,15 @@ class WorkflowTests(unittest.TestCase):
                     self.assertIn('**Approval:** [Reviewer', text)
                     # Sample approvals exercise the read model; no real feature is accepted.
                     brief.write_text(text.replace('[What should this feature let the person do?]',
-                                                  'Sign in').replace('[Reviewer and date; leave blank until approved]',
-                                                                    'Fixture reviewer, 2026-10-06').replace(
-                                                                      '- [Path or URL] — [Why the agent needs it]',
-                                                                      'None beyond AGENTS.md and this Brief'))
+                                                  'Sign in').replace(
+                                                    '[What current problem or dependency makes this worth doing next?]',
+                                                    'People cannot access their accounts.').replace(
+                                                      '[What will the person see or experience when it works?]',
+                                                      'People can sign in.').replace(
+                                                        '[Reviewer and date; leave blank until approved]',
+                                                        'Fixture reviewer, 2026-10-06').replace(
+                                                          '- [Path or URL] — [Why the agent needs it]',
+                                                          'None beyond AGENTS.md and this Brief'))
                     run('revise', 'brief', 'login')
                     (feature / 'tasks.md').write_text(
                         '# Tasks\n\n**Approval:** Fixture reviewer\n\n## Queue\n\n'
