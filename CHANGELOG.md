@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-13
+
+- Added immutable Brief and task revision lineage, revision commands, stale-task checks, and clearer CLI structure. [PR #3](https://github.com/varelycode/ggez/pull/3).
+
 ## 2026-10-20
 
 - Removed Evidence/Review and added Results plus `ggez update`. [#2](https://github.com/varelycode/ggez/pull/2).
