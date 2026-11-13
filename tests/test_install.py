@@ -1,6 +1,7 @@
 import contextlib
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -16,6 +17,12 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('install', ROOT / 'scripts/install.py')
 installer = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(installer)
+
+LEGACY_REQUIRED = ('scripts/ggez.py', 'scripts/install.py', 'templates/prd.md',
+                   'templates/tasks.md', 'templates/agent-rules.md')
+LEGACY_OPTIONAL = ('scripts/tasks.py', 'templates/ralph/.agent/tasks.json',
+                   'templates/ralph/.agent/tasks/TASK-1.json',
+                   'templates/ralph/.agent/tasks/TASK-2.json')
 
 
 class InstallerTests(unittest.TestCase):
@@ -45,6 +52,10 @@ class InstallerTests(unittest.TestCase):
                 archive.addfile(entry, io.BytesIO(content))
         return output.getvalue()
 
+    def legacy_payload(self):
+        names = LEGACY_REQUIRED + LEGACY_OPTIONAL
+        return {name: (ROOT / name).read_bytes() for name in names if (ROOT / name).is_file()}
+
     def test_checkout_install_and_help_with_spaces_in_paths(self):
         result = self.run_install()
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -62,6 +73,16 @@ class InstallerTests(unittest.TestCase):
         for name, content in self.payload.items():
             self.assertEqual((releases[0] / name).read_bytes(), content)
         self.assertFalse(list(self.prefix.rglob('__pycache__')))
+
+    def test_previous_release_allowlist_can_activate_current_release(self):
+        payload = self.legacy_payload()
+        self.assertNotIn(installer.MANIFEST, payload)
+        launcher = installer.install(payload, self.prefix)
+        for command in (('--help',), ('revise', '--help'), ('check', '--help')):
+            with self.subTest(command=command):
+                result = subprocess.run([str(launcher), *command], env=self.env,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_default_install_is_user_local(self):
         result = subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/install.py'),
@@ -169,6 +190,15 @@ class InstallerTests(unittest.TestCase):
                 code = installer.main(['--prefix', str(self.prefix)])
         self.assertEqual(code, 0)
         self.assertEqual(self.help_output(self.prefix / 'bin/ggez').returncode, 0)
+
+    def test_archive_manifest_can_add_a_future_runtime_file(self):
+        payload = dict(self.payload)
+        manifest = json.loads(payload[installer.MANIFEST])
+        manifest['required'].append('scripts/future_runtime.py')
+        payload[installer.MANIFEST] = json.dumps(manifest).encode()
+        payload['scripts/future_runtime.py'] = b'VALUE = 1\n'
+        selected = installer.archive_payload(self.archive(payload))
+        self.assertEqual(selected['scripts/future_runtime.py'], b'VALUE = 1\n')
 
     def test_downloaded_install_reports_updated_release(self):
         launcher = installer.install(self.payload, self.prefix)
@@ -304,14 +334,20 @@ class InstallerTests(unittest.TestCase):
         for kind in ('symlink', 'duplicate'):
             output = io.BytesIO()
             with tarfile.open(fileobj=output, mode='w:gz') as archive:
+                manifest = self.payload[installer.MANIFEST]
+                manifest_entry = tarfile.TarInfo('ggez-main/' + installer.MANIFEST)
+                manifest_entry.size = len(manifest)
+                archive.addfile(manifest_entry, io.BytesIO(manifest))
                 entry = tarfile.TarInfo('ggez-main/scripts/ggez.py')
                 if kind == 'symlink':
                     entry.type = tarfile.SYMTYPE
                     entry.linkname = '/outside'
                     archive.addfile(entry)
                 else:
+                    content = self.payload['scripts/ggez.py']
+                    entry.size = len(content)
                     for _ in range(2):
-                        archive.addfile(entry, io.BytesIO(b''))
+                        archive.addfile(entry, io.BytesIO(content))
             with self.assertRaises(installer.InstallError):
                 installer.archive_payload(output.getvalue())
 

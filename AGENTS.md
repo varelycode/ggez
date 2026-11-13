@@ -36,6 +36,7 @@ ggez: a reusable workflow kit for humans and coding agents. Python 3 task helper
 ## Code and Data
 
 - Keep tools in `scripts/` and tests in `tests/`.
+- List installable files in `scripts/install-manifest.json`. New runtime dependencies must remain installable by the previous updater; test its legacy allowlist.
 - Follow existing Python style.
 - Preserve edits.
 - Never commit secrets.

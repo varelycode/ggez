@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import io
+import json
 import os
 from pathlib import Path, PurePosixPath
 import shlex
@@ -18,11 +19,11 @@ import urllib.request
 ARCHIVE_URL = 'https://codeload.github.com/varelycode/ggez/tar.gz/refs/heads/main'
 LIMIT = 10 * 1024 * 1024
 MARKER = '# ggez-managed-launcher-v1\n'
-REQUIRED = ('scripts/ggez.py', 'scripts/ggez_revisions.py', 'scripts/install.py',
-            'templates/prd.md', 'templates/tasks.md', 'templates/agent-rules.md')
-OPTIONAL = ('scripts/tasks.py', 'templates/ralph/.agent/tasks.json',
-            'templates/ralph/.agent/tasks/TASK-1.json',
-            'templates/ralph/.agent/tasks/TASK-2.json')
+MANIFEST = 'scripts/install-manifest.json'
+BASE_REQUIRED = {
+    'scripts/ggez.py', 'scripts/install.py', MANIFEST,
+    'templates/prd.md', 'templates/tasks.md', 'templates/agent-rules.md',
+}
 
 
 class InstallError(ValueError):
@@ -34,17 +35,54 @@ def require(condition, message):
         raise InstallError(message)
 
 
-def check_payload(payload):
-    require(all(name in payload for name in REQUIRED), 'Release is missing required files.')
+def manifest_layout(content):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            require(key not in result, 'Install manifest has a duplicate key: ' + key)
+            result[key] = value
+        return result
+    try:
+        manifest = json.loads(content.decode('utf-8'), object_pairs_hook=unique)
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise InstallError('Install manifest is not valid JSON.') from exc
+    require(isinstance(manifest, dict)
+            and set(manifest) == {'version', 'required', 'optional'}
+            and type(manifest['version']) is int and manifest['version'] == 1,
+            'Install manifest has an unsupported format.')
+    required, optional = manifest['required'], manifest['optional']
+    require(isinstance(required, list) and isinstance(optional, list)
+            and all(isinstance(name, str) for name in required + optional),
+            'Install manifest file lists must contain paths.')
+    require(len(required + optional) == len(set(required + optional)),
+            'Install manifest contains duplicate paths.')
+    for name in required + optional:
+        path = PurePosixPath(name)
+        require(name == str(path) and not path.is_absolute() and len(path.parts) > 1
+                and '..' not in path.parts and path.parts[0] in ('scripts', 'templates'),
+                'Unsafe install manifest path: ' + name)
+    require(BASE_REQUIRED <= set(required), 'Install manifest is missing required files.')
+    return tuple(required), tuple(optional)
+
+
+def check_payload(payload, required):
+    require(all(name in payload for name in required), 'Release is missing required files.')
     require(sum(map(len, payload.values())) <= LIMIT, 'Release is too large.')
-    require(all(payload[name].strip() for name in REQUIRED), 'Release contains empty required files.')
+    require(all(payload[name].strip() for name in required), 'Release contains empty required files.')
     return payload
 
 
 def local_payload(source):
     source = source.resolve(strict=True)
+    manifest_path = source / MANIFEST
+    require(not any(p.is_symlink() for p in (manifest_path, *manifest_path.parents)
+                    if p != source), 'Source files must not use symlinks.')
+    require(manifest_path.is_file(), 'Release is missing required install manifest.')
+    require(manifest_path.stat().st_size <= LIMIT, 'Install manifest is too large.')
+    manifest_content = manifest_path.read_bytes()
+    required, optional = manifest_layout(manifest_content)
     payload = {}
-    for name in REQUIRED + OPTIONAL:
+    for name in required + optional:
         path = source / name
         require(not any(p.is_symlink() for p in (path, *path.parents) if p != source),
                 'Source files must not use symlinks.')
@@ -52,28 +90,44 @@ def local_payload(source):
             require(path.is_file(), 'Expected a regular source file: ' + name)
             require(path.stat().st_size <= LIMIT, 'Source file is too large: ' + name)
             payload[name] = path.read_bytes()
-    return check_payload(payload)
+    return check_payload(payload, required)
 
 
 def archive_payload(data):
-    payload = {}
-    root = None
     with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
-        for member in archive:
+        members = archive.getmembers()
+        root = None
+        manifest_member = None
+        for member in members:
             path = PurePosixPath(member.name)
             require(not path.is_absolute() and '..' not in path.parts, 'Unsafe archive path.')
             require(bool(path.parts), 'Empty archive path.')
             root = root or path.parts[0]
             require(path.parts[0] == root, 'Archive has multiple roots.')
             name = '/'.join(path.parts[1:])
-            if name not in REQUIRED + OPTIONAL:
+            if name != MANIFEST:
+                continue
+            require(manifest_member is None, 'Duplicate archive file: ' + name)
+            require(member.isfile(), 'Archive payload must contain regular files.')
+            require(0 <= member.size <= LIMIT, 'Archive file is too large.')
+            manifest_member = member
+        require(manifest_member is not None, 'Release is missing required install manifest.')
+        manifest_content = archive.extractfile(manifest_member).read(LIMIT + 1)
+        require(len(manifest_content) <= LIMIT, 'Install manifest is too large.')
+        required, optional = manifest_layout(manifest_content)
+        allowed = set(required + optional)
+        payload = {}
+        for member in members:
+            path = PurePosixPath(member.name)
+            name = '/'.join(path.parts[1:])
+            if name not in allowed:
                 continue
             require(member.isfile(), 'Archive payload must contain regular files.')
             require(name not in payload, 'Duplicate archive file: ' + name)
             require(0 <= member.size <= LIMIT, 'Archive file is too large.')
             payload[name] = archive.extractfile(member).read(LIMIT + 1)
             require(sum(map(len, payload.values())) <= LIMIT, 'Release is too large.')
-    return check_payload(payload)
+    return check_payload(payload, required)
 
 
 def download_payload():
