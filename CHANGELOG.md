@@ -6,6 +6,8 @@
 
 - Added SemVer release identifiers, `ggez --version`, installer version validation, and the `v0.1.0` tag. [PR #7](https://github.com/varelycode/ggez/pull/7).
 
+- Added CI that runs the Python 3.9 suite and blocks install-payload changes without a higher SemVer. [PR #9](https://github.com/varelycode/ggez/pull/9).
+
 ## 2026-10-20
 
 - Removed Evidence/Review and added Results plus `ggez update`. [#2](https://github.com/varelycode/ggez/pull/2).
