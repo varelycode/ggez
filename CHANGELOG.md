@@ -8,6 +8,8 @@
 
 - Added CI that runs the Python 3.9 suite and blocks install-payload changes without a higher SemVer. [PR #9](https://github.com/varelycode/ggez/pull/9).
 
+- Simplified the Brief by removing unused metadata and setup fields while retaining Outcome, Context, Scope, acceptance, and Safety. Released as `v0.2.0`. [PR #11](https://github.com/varelycode/ggez/pull/11).
+
 ## 2026-10-20
 
 - Removed Evidence/Review and added Results plus `ggez update`. [#2](https://github.com/varelycode/ggez/pull/2).
