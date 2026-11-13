@@ -18,8 +18,8 @@ import urllib.request
 ARCHIVE_URL = 'https://codeload.github.com/varelycode/ggez/tar.gz/refs/heads/main'
 LIMIT = 10 * 1024 * 1024
 MARKER = '# ggez-managed-launcher-v1\n'
-REQUIRED = ('scripts/ggez.py', 'scripts/install.py', 'templates/prd.md', 'templates/tasks.md',
-            'templates/agent-rules.md')
+REQUIRED = ('scripts/ggez.py', 'scripts/ggez_revisions.py', 'scripts/install.py',
+            'templates/prd.md', 'templates/tasks.md', 'templates/agent-rules.md')
 OPTIONAL = ('scripts/tasks.py', 'templates/ralph/.agent/tasks.json',
             'templates/ralph/.agent/tasks/TASK-1.json',
             'templates/ralph/.agent/tasks/TASK-2.json')

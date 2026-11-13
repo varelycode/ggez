@@ -1,9 +1,9 @@
 # ggez
 
-ggez keeps feature work in two editable files: a Brief for the outcome and Tasks for implementation.
+ggez keeps feature work in an outcome Brief and task plan, with immutable revision lineage between them.
 
-1. Fill Slice and Outcome in the [Brief](templates/prd.md), then list 1–5 direct Context sources with reasons.
-2. Review and approve the [tasks](templates/tasks.md).
+1. Fill the Brief, record its revision, and get approval.
+2. Generate tasks from that revision, record them, and get approval.
 3. Build and test. Each task records one fixed Result.
 4. Check the Brief acceptance list when the outcome is ready.
 
@@ -17,20 +17,17 @@ Requires macOS or Linux, Python 3.9+, and curl.
 
 ## use it
 
-Run these from a project folder:
-
 ```sh
 ggez init
 ggez plan "my next feature"
+ggez revise brief
+ggez revise tasks
+ggez check
 ggez status
 ```
 
-`init` previews templates and scoped agent rules. `plan` creates a blank Brief. `status` blocks invalid Context and reads progress without writing.
+Feature arguments are optional; ggez selects the only feature or offers fuzzy selection. `init` previews templates and scoped agent rules. `revise` records metadata without rewriting definitions. `check` and `status` are read-only.
 
-Update an installed CLI without a checkout:
-
-```sh
-ggez update
-```
+Update an installed CLI with `ggez update`.
 
 See the [working agreement](docs/workflow.md) and [agent rules](AGENTS.md).

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Command-line entry point for ggez."""
 import argparse
+from dataclasses import dataclass
 import difflib
 import hashlib
 import json
@@ -14,6 +15,17 @@ import subprocess
 import sys
 import tempfile
 
+if __package__:
+    from .ggez_revisions import (
+        REVISION_KINDS, RevisionError, RevisionIdentity, canonical_definition,
+        definition_digest, parse_revision_id, revision_created_at, revision_identity, uuid7,
+        validate_full_digest, verify_revision)
+else:
+    from ggez_revisions import (
+        REVISION_KINDS, RevisionError, RevisionIdentity, canonical_definition,
+        definition_digest, parse_revision_id, revision_created_at, revision_identity, uuid7,
+        validate_full_digest, verify_revision)
+
 START = '<!-- ggez:start -->'
 END = '<!-- ggez:end -->'
 TEMPLATES = ('prd.md', 'tasks.md')
@@ -23,8 +35,53 @@ MANIFEST = '.ggez/install.json'
 MANIFEST_VERSION = 2
 
 
-class ProjectError(ValueError):
-    pass
+ProjectError = RevisionError
+
+
+@dataclass(frozen=True)
+class DocumentRevision:
+    state: str
+    revision: str = ''
+    created: str = 'Unavailable'
+    message: str = ''
+
+
+@dataclass(frozen=True)
+class Lineage:
+    brief: DocumentRevision
+    tasks: DocumentRevision
+    state: str = 'Current'
+    issue: str = ''
+
+    @property
+    def display(self):
+        return self.state if not self.issue else self.state + ': ' + self.issue
+
+
+@dataclass(frozen=True)
+class RevisionWrite:
+    path: Path
+    revision: str
+    content_digest: str
+    created: str
+    wrote: bool
+    approval_cleared: bool
+
+
+@dataclass(frozen=True)
+class StampedDocument:
+    content: str
+    identity: RevisionIdentity
+    approval_cleared: bool
+
+
+@dataclass(frozen=True)
+class RecordedRevision:
+    revision: str
+    content_digest: str
+    actual_digest: str
+    path: str
+    kind: str
 
 
 def require(condition, message):
@@ -35,6 +92,8 @@ def require(condition, message):
 def digest(content):
     return hashlib.sha256(content).hexdigest()
 
+
+# Managed installation
 
 def read_target(root, name):
     path = root / name
@@ -221,6 +280,8 @@ def init_project(args):
     return 0
 
 
+# Project discovery and planning
+
 def project_root(directory):
     root = directory.resolve()
     manifest = read_target(root, MANIFEST)
@@ -254,16 +315,42 @@ def choose_feature(paths, allow_new=False):
     if allow_new:
         print('0. New feature')
     try:
-        choice = input('Choose a number, or Enter to cancel: ').strip()
+        choice = input('Choose a number or type a feature name; Enter cancels: ').strip()
     except EOFError:
         choice = ''
     if not choice:
         return None
     if allow_new and choice == '0':
         return 'new'
-    require(choice.isascii() and choice.isdigit() and 1 <= int(choice) <= len(paths),
-            'Choose one of the listed numbers.')
-    return paths[int(choice) - 1]
+    if choice.isascii() and choice.isdigit():
+        require(1 <= int(choice) <= len(paths), 'Choose one of the listed numbers.')
+        return paths[int(choice) - 1]
+    query = re.sub(r'[^a-z0-9]+', '', choice.lower())
+    require(bool(query), 'Type a feature name or choose one of the listed numbers.')
+    names = {path: re.sub(r'[^a-z0-9]+', '', path.name.lower()) for path in paths}
+    matches = [path for path, name in names.items() if query in name]
+    if len(matches) == 1:
+        return matches[0]
+    scores = sorted(((difflib.SequenceMatcher(None, query, name).ratio(), path)
+                     for path, name in names.items()), reverse=True,
+                    key=lambda item: (item[0], item[1].name))
+    require(bool(scores) and scores[0][0] >= 0.45,
+            'No feature matches "' + choice + '".')
+    require(len(scores) == 1 or scores[0][0] - scores[1][0] >= 0.1,
+            'Several features match "' + choice + '"; type more of the name or choose a number.')
+    return scores[0][1]
+
+
+def select_feature(root, feature=None):
+    paths = feature_paths(root)
+    require(bool(paths), 'No features yet. Start one with ggez plan "Feature title".')
+    if feature is not None:
+        matches = [path for path in paths if path.name == feature]
+        require(bool(matches), 'Feature not found: ' + feature)
+        return matches[0]
+    if len(paths) == 1:
+        return paths[0]
+    return choose_feature(paths)
 
 
 def create_feature(root, title):
@@ -310,18 +397,20 @@ def create_feature(root, title):
 
 def print_handoff(path):
     print('Brief: ' + str(path / 'brief.md'))
-    print('Loop: fill Brief → approve tasks → build and test → accept the outcome.')
+    print('Loop: fill Brief → record and approve revisions → build and test → accept the outcome.')
     print('\nCopy into Codex, Cursor, or Claude:')
     print('Read AGENTS.md and ' + str(path / 'brief.md') + '. '
           'I fill Slice and Outcome; never fill those required sections for me. '
           'I also provide the Context sources or exact no-context statement. '
           'Before preparing tasks, read the direct sources in Context. Do not load references '
-          'found inside them unless the work requires it. After I approve the Brief, prepare '
-          'tasks for my approval. '
+          'found inside them unless the work requires it. Record the completed Brief with '
+          '`ggez revise brief`, then get my approval. Prepare tasks from that exact Brief, record '
+          'them with `ggez revise tasks`, then get my approval of that task revision. '
           'Execute only approved tasks. Each task has one Result: Pending, Pass, Fail, Blocked, '
           'or Interrupted; check it only with Pass. Verified is default: test one task, update its '
           'Result, then wait for my review. If I explicitly choose Unverified, continue approved '
-          'tasks after tests. Stop on failures or blockers. Final Brief acceptance is mine.')
+          'tasks after tests. Use `ggez check` to validate lineage. Stop on failures or blockers. '
+          'Final Brief acceptance is mine.')
 
 
 def plan_feature(args):
@@ -347,6 +436,8 @@ def plan_feature(args):
     print_handoff(path)
     return 0
 
+
+# Feature document model
 
 def field(text, name):
     values = re.findall(r'^\*\*' + re.escape(name) + r':\*\*[ \t]*([^\n]*)', text, re.M)
@@ -442,6 +533,247 @@ def acceptance_checks(text):
     return [check.lower() == 'x' for check in matches]
 
 
+# Revision lifecycle
+
+def replace_managed_fields(text, values):
+    missing = []
+    for name, value in values:
+        pattern = r'^\*\*' + re.escape(name) + r':\*\*[^\n]*$'
+        matches = list(re.finditer(pattern, text, re.M))
+        require(len(matches) <= 1, 'Duplicate field: ' + name)
+        if matches:
+            match = matches[0]
+            text = text[:match.start()] + '**' + name + ':** ' + value + text[match.end():]
+        else:
+            missing.append((name, value))
+    if missing:
+        first_line = text.find('\n')
+        require(first_line >= 0 and text.startswith('# '), 'Document needs a Markdown title.')
+        block = '\n\n'.join('**' + name + ':** ' + value for name, value in missing)
+        text = text[:first_line] + '\n\n' + block + text[first_line:]
+    return text
+
+
+def clear_approval(text, kind):
+    pattern = r'^\*\*Approval:\*\*[^\n]*$'
+    if re.search(pattern, text, re.M):
+        text = re.sub(pattern, '**Approval:** [Reviewer and date; leave blank until approved]',
+                      text, count=1, flags=re.M)
+    if kind == 'brief' and re.search(r'^\*\*Status:\*\*[^\n]*$', text, re.M):
+        text = re.sub(r'^\*\*Status:\*\*[^\n]*$', '**Status:** Draft',
+                      text, count=1, flags=re.M)
+    return text
+
+
+def stamped_text(content, kind, source_revision='', now_ms=None, entropy=None):
+    current_id = field(content, 'Revision')
+    current_digest = field(content, 'Content digest')
+    prospective = content
+    values = []
+    if kind == 'tasks':
+        parse_revision_id(source_revision, 'brief')
+        prospective = replace_managed_fields(prospective, [('Derived from', source_revision)])
+        values.append(('Derived from', source_revision))
+    identity = revision_identity(
+        kind, prospective, current_id, current_digest, now_ms, entropy)
+    changed_definition = bool(current_id and identity.revision != current_id)
+    values[:0] = [('Revision', identity.revision),
+                  ('Content digest', identity.content_digest)]
+    result = replace_managed_fields(prospective, values)
+    if changed_definition:
+        result = clear_approval(result, kind)
+    return StampedDocument(result, identity, changed_definition)
+
+
+def atomic_document_write(root, relative_name, before, after, replace_file=None):
+    path = root / relative_name
+    before_bytes = before.encode('utf-8')
+    after_bytes = after.encode('utf-8')
+    require(read_target(root, relative_name) == before_bytes,
+            'Document changed before its revision could be recorded: ' + relative_name)
+    if before_bytes == after_bytes:
+        return False
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix='.ggez-revise-', dir=path.parent,
+                                         delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(after_bytes)
+        temporary.chmod(stat.S_IMODE(path.stat().st_mode))
+        require(read_target(root, relative_name) == before_bytes,
+                'Document changed while its revision was being recorded: ' + relative_name)
+        (replace_file or os.replace)(temporary, path)
+        temporary = None
+        return True
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def revise_document(root, path, kind, now_ms=None, entropy=None, replace_file=None):
+    require(kind in REVISION_KINDS, 'Choose brief or tasks.')
+    base = 'features/' + path.name + '/'
+    brief = read_document(root, base + 'brief.md')
+    require(bool(brief), 'Brief is missing or empty: ' + base + 'brief.md')
+    require(bool(field(brief, 'Goal')) and valid_context(brief),
+            'Complete the Brief goal and Context before recording a revision.')
+    source_revision = ''
+    if kind == 'brief':
+        name, content = base + 'brief.md', brief
+    else:
+        require(approved(brief), 'Approve the Brief before recording a task-set revision.')
+        source_revision = field(brief, 'Revision')
+        source_digest = field(brief, 'Content digest')
+        require(bool(source_revision) and bool(source_digest),
+                'Run ggez revise brief before recording a task-set revision.')
+        verify_revision(source_revision, source_digest, brief, 'brief')
+        name = base + 'tasks.md'
+        content = read_document(root, name)
+        require(bool(content), 'Tasks are missing or empty: ' + name)
+        require(bool(read_tasks(content)), 'Add at least one task before recording its revision.')
+    stamped = stamped_text(content, kind, source_revision, now_ms, entropy)
+    wrote = atomic_document_write(
+        root, name, content, stamped.content, replace_file)
+    return RevisionWrite(
+        root / name, stamped.identity.revision, stamped.identity.content_digest,
+        revision_created_at(stamped.identity.revision), wrote,
+        stamped.approval_cleared)
+
+
+def revise_feature(args):
+    root = project_root(args.project)
+    path = select_feature(root, args.feature)
+    if path is None:
+        print('Cancelled; no files changed.')
+        return 0
+    result = revise_document(root, path, args.document)
+    print('Feature: ' + path.name)
+    print('Revision: ' + result.revision)
+    print('Created: ' + result.created)
+    print(('Updated: ' if result.wrote else 'Unchanged: ') + str(result.path))
+    if result.approval_cleared:
+        print('Approval cleared: review and approve this new revision before continuing.')
+    return 0
+
+
+# Revision validation
+
+def inspect_document_revision(text, kind):
+    revision = field(text, 'Revision')
+    content_digest = field(text, 'Content digest')
+    if not revision and not content_digest:
+        return DocumentRevision(
+            'missing', message='Run ggez revise ' + kind + ' to record this document revision.')
+    if not revision or not content_digest:
+        return DocumentRevision(
+            'invalid', revision or 'Incomplete',
+            message='Revision ID and content digest must be recorded together.')
+    try:
+        verify_revision(revision, content_digest, text, kind)
+        return DocumentRevision('valid', revision, revision_created_at(revision))
+    except ProjectError as exc:
+        return DocumentRevision('invalid', revision, message=str(exc))
+
+
+def inspect_lineage(brief, tasks):
+    brief_info = inspect_document_revision(brief, 'brief')
+    task_info = (inspect_document_revision(tasks, 'tasks') if tasks else
+                 DocumentRevision(
+                     'missing', message='Create tasks.md, then run ggez revise tasks.'))
+    if brief_info.state != 'valid':
+        return Lineage(brief_info, task_info, 'Missing revision metadata', brief_info.message)
+    if task_info.state != 'valid':
+        return Lineage(brief_info, task_info, 'Missing revision metadata', task_info.message)
+    source = field(tasks, 'Derived from')
+    try:
+        parse_revision_id(source, 'brief')
+    except ProjectError as exc:
+        return Lineage(brief_info, task_info, 'Invalid task lineage', str(exc))
+    if source != brief_info.revision:
+        issue = ('Tasks derive from ' + source + ', but the current Brief is ' +
+                 brief_info.revision + '. Regenerate the tasks, then run ggez revise tasks.')
+        return Lineage(brief_info, task_info, 'Stale', issue)
+    return Lineage(brief_info, task_info)
+
+
+def lineage_fields(lineage):
+    return (
+        ('Brief revision', lineage.brief.revision or 'Untracked'),
+        ('Brief created', lineage.brief.created),
+        ('Task revision', lineage.tasks.revision or 'Untracked'),
+        ('Task created', lineage.tasks.created),
+        ('Lineage', lineage.display),
+    )
+
+
+def duplicate_revision_warnings(root, selected_ids):
+    records = []
+    for path in feature_paths(root):
+        for kind, filename in (('brief', 'brief.md'), ('tasks', 'tasks.md')):
+            text = read_document(root, 'features/' + path.name + '/' + filename)
+            if not text:
+                continue
+            revision = field(text, 'Revision')
+            content_digest = field(text, 'Content digest')
+            if not revision or not content_digest:
+                continue
+            try:
+                parsed = parse_revision_id(revision, kind)
+                recorded = validate_full_digest(content_digest)
+            except ProjectError:
+                continue
+            records.append(RecordedRevision(
+                revision, recorded, definition_digest(text, kind),
+                str(path / filename), parsed.kind))
+    by_id = {}
+    for record in records:
+        by_id.setdefault(record.revision, []).append(record)
+    for revision, rows in by_id.items():
+        if len(rows) > 1 and len({(row.content_digest, row.actual_digest)
+                                  for row in rows}) > 1:
+            raise ProjectError('Conflicting duplicate revision ID ' + revision + ': ' +
+                               ', '.join(row.path for row in rows))
+    by_content = {}
+    for record in records:
+        if record.content_digest == record.actual_digest:
+            by_content.setdefault((record.kind, record.content_digest), []).append(record)
+    warnings = []
+    for rows in by_content.values():
+        ids = {row.revision for row in rows}
+        if len(ids) > 1 and ids.intersection(selected_ids):
+            warnings.append('Identical content has multiple revision IDs: ' +
+                            ', '.join(sorted(ids)) + '. Reuse the existing revision when possible.')
+    return warnings
+
+
+def check_feature(args):
+    root = project_root(args.project)
+    path = select_feature(root, args.feature)
+    if path is None:
+        print('Cancelled; no files changed.')
+        return 0
+    base = 'features/' + path.name + '/'
+    brief = read_document(root, base + 'brief.md')
+    tasks = read_document(root, base + 'tasks.md')
+    require(bool(brief), 'Brief is missing or empty: ' + base + 'brief.md')
+    require(bool(field(brief, 'Goal')) and valid_context(brief),
+            'Complete the Brief goal and Context before checking revisions.')
+    require(bool(tasks), 'Tasks are missing or empty: ' + base + 'tasks.md')
+    require(bool(read_tasks(tasks)), 'Add at least one task before checking revisions.')
+    lineage = inspect_lineage(brief, tasks)
+    require(not lineage.issue, lineage.issue)
+    selected_ids = {lineage.brief.revision, lineage.tasks.revision}
+    warnings = duplicate_revision_warnings(root, selected_ids)
+    print('Feature: ' + path.name)
+    for label, value in lineage_fields(lineage):
+        print(label + ': ' + value)
+    for warning in warnings:
+        print('Warning: ' + warning)
+    return 0
+
+
+# Status read model
+
 def execution_time(root, feature_id):
     text = read_document(root, '.ggez/features/' + feature_id + '/usage.jsonl')
     if not text.strip():
@@ -479,18 +811,27 @@ def feature_status(root, path):
     require(bool(brief), 'Brief is missing or empty: ' + base + 'brief.md')
     tasks = read_document(root, base + 'tasks.md')
     rows = read_tasks(tasks)
+    checks = acceptance_checks(brief)
+    lineage = inspect_lineage(brief, tasks)
     passed = {task_id for task_id, _, checked, result in rows if checked and result == 'Pass'}
     pending = [(task_id, title) for task_id, title, _, _ in rows if task_id not in passed]
     result = {'goal': field(brief, 'Goal') or 'Not filled in', 'stage': 'Brief',
               'state': 'Needs attention', 'reason': 'Approval required',
               'current': pending[0][0] + ' — ' + pending[0][1] if pending else 'None',
               'completed': len(passed), 'total': len(rows), 'next': 'Fill the Brief and record human approval.',
-              'time': execution_time(root, path.name)}
+              'time': execution_time(root, path.name),
+              'revision_fields': lineage_fields(lineage)}
     if not approved(brief) or not field(brief, 'Goal') or not valid_context(brief):
+        return result
+    if lineage.brief.state != 'valid':
+        result.update(reason='Missing prerequisite', next=lineage.issue)
         return result
     result['stage'] = 'Tasks'
     if not rows:
         result.update(reason='Missing prerequisite', next='Prepare tasks from the template for approval.')
+        return result
+    if lineage.tasks.state != 'valid' or lineage.state != 'Current':
+        result.update(reason='Missing prerequisite', next=lineage.issue)
         return result
     if not approved(tasks):
         result['next'] = 'Review the task list and record human approval.'
@@ -504,7 +845,6 @@ def feature_status(root, path):
             return result
     if len(passed) == len(rows):
         result['stage'] = 'Review'
-        checks = acceptance_checks(brief)
         if checks and all(checks):
             result.update(state='Complete', reason='', next='Outcome accepted.')
         else:
@@ -543,11 +883,15 @@ def status_project(args):
     percent = format(100 * info['completed'] / info['total'], '.0f') + '%' if info['total'] else 'Not available'
     show('Completed', count + ' (' + percent + ')')
     show('Execution time', info['time'])
+    for label, value in info['revision_fields']:
+        show(label, value)
     for name in ('brief.md', 'tasks.md'):
         if (path / name).is_file():
             show(name, path / name)
     return 0
 
+
+# Installed CLI updates
 
 def installation_prefix():
     script = Path(__file__).resolve()
@@ -575,6 +919,12 @@ def update_cli():
     return result.returncode
 
 
+def update_command(_args):
+    return update_cli()
+
+
+# Command-line interface
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog='ggez', description='Plan features, approve tasks, and track progress.')
@@ -583,23 +933,30 @@ def main(argv=None):
     init.add_argument('directory', nargs='?', type=Path, default=Path('.'))
     init.add_argument('--dry-run', action='store_true', help='Preview without writing files.')
     init.add_argument('--yes', action='store_true', help='Confirm the preview and compatibility with existing rules.')
+    init.set_defaults(handler=init_project)
     plan = commands.add_parser('plan', help='Create a blank Brief or select a feature.')
     plan.add_argument('title', nargs='?')
     plan.add_argument('--project', type=Path, default=Path('.'))
+    plan.set_defaults(handler=plan_feature)
     status = commands.add_parser('status', help='Show task progress, recorded time, and file paths.')
     status.add_argument('feature', nargs='?')
     status.add_argument('--project', type=Path, default=Path('.'))
-    commands.add_parser('update', help='Download, validate, and activate the latest ggez release.')
+    status.set_defaults(handler=status_project)
+    revise = commands.add_parser('revise', help='Record an immutable Brief or task-set revision.')
+    revise.add_argument('document', choices=REVISION_KINDS)
+    revise.add_argument('feature', nargs='?')
+    revise.add_argument('--project', type=Path, default=Path('.'))
+    revise.set_defaults(handler=revise_feature)
+    check = commands.add_parser('check', help='Validate Brief and task-set revision lineage.')
+    check.add_argument('feature', nargs='?')
+    check.add_argument('--project', type=Path, default=Path('.'))
+    check.set_defaults(handler=check_feature)
+    update = commands.add_parser('update', help='Download, validate, and activate the latest ggez release.')
+    update.set_defaults(handler=update_command)
     args = parser.parse_args(argv)
     try:
-        if args.command == 'init':
-            return init_project(args)
-        if args.command == 'plan':
-            return plan_feature(args)
-        if args.command == 'status':
-            return status_project(args)
-        if args.command == 'update':
-            return update_cli()
+        if hasattr(args, 'handler'):
+            return args.handler(args)
         if read_target(Path.cwd().resolve(), MANIFEST) is not None:
             return status_project(argparse.Namespace(project=Path.cwd(), feature=None))
         parser.print_help()

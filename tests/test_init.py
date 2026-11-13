@@ -1,4 +1,3 @@
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -8,11 +7,9 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+from scripts import ggez
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location('ggez', ROOT / 'scripts/ggez.py')
-ggez = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(ggez)
 
 
 class InitTests(unittest.TestCase):
@@ -334,7 +331,8 @@ class InitTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         rules = (self.root / 'AGENTS.md').read_text()
         for required in ('Slice and Outcome', 'Verified', 'Unverified', 'usage.jsonl',
-                         'brief.md', 'tasks.md', 'fresh approval', 'live signal', 'Result'):
+                         'brief.md', 'tasks.md', 'fresh approval', 'live signal', 'Result',
+                         'ggez revise brief', 'ggez revise tasks', 'ggez check'):
             self.assertIn(required, rules)
         self.assertNotIn('evidence.md', rules)
         self.assertNotIn('review.md', rules)

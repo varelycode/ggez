@@ -50,9 +50,11 @@ class WorkflowTests(unittest.TestCase):
                                                                     'Fixture reviewer, 2026-10-06').replace(
                                                                       '- [Path or URL] — [Why the agent needs it]',
                                                                       'None beyond AGENTS.md and this Brief'))
+                    run('revise', 'brief', 'login')
                     (feature / 'tasks.md').write_text(
                         '# Tasks\n\n**Approval:** Fixture reviewer\n\n## Queue\n\n'
                         '- [x] TASK-1 — Test login\n\n  - **Result:** Pass\n')
+                    run('revise', 'tasks', 'login')
                     output = run('status')
                     self.assertIn('1/1 (100%)', output)
                     self.assertIn('Stage: Review', output)
@@ -117,6 +119,7 @@ class WorkflowTests(unittest.TestCase):
                 '- [Path or URL] — [Why the agent needs it]',
                 '- web/AGENTS.md — Defines web rules.\n- service/AGENTS.md — Defines service rules.')
             brief.write_text(text)
+            run('revise', 'brief', 'shared-context')
             self.assertIn('Stage: Tasks', run('status'))
             self.assertFalse((parent / '.git').exists())
             self.assertEqual(before, {child.name: snapshot(child) for child in children})
