@@ -3,12 +3,12 @@
   "required": [
     "scripts/ggez.py",
     "scripts/install.py",
-    "scripts/install-manifest.json",
     "templates/prd.md",
     "templates/tasks.md",
     "templates/agent-rules.md"
   ],
   "optional": [
+    "scripts/ggez_revisions.py",
     "scripts/tasks.py",
     "templates/ralph/.agent/tasks.json",
     "templates/ralph/.agent/tasks/TASK-1.json",

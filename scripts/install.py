@@ -21,7 +21,7 @@ LIMIT = 10 * 1024 * 1024
 MARKER = '# ggez-managed-launcher-v1\n'
 MANIFEST = 'scripts/install-manifest.json'
 BASE_REQUIRED = {
-    'scripts/ggez.py', 'scripts/install.py', MANIFEST,
+    'scripts/ggez.py', 'scripts/install.py',
     'templates/prd.md', 'templates/tasks.md', 'templates/agent-rules.md',
 }
 
