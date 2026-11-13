@@ -10,6 +10,8 @@
 
 - Simplified the Brief by removing unused metadata and setup fields while retaining Outcome, Context, Scope, acceptance, and Safety. Released as `v0.2.0`. [PR #11](https://github.com/varelycode/ggez/pull/11).
 
+- Aligned packaged Ralph guidance with the simplified Brief and added stale-reference coverage. Released as `v0.2.1`. [PR #13](https://github.com/varelycode/ggez/pull/13).
+
 ## 2026-10-20
 
 - Removed Evidence/Review and added Results plus `ggez update`. [#2](https://github.com/varelycode/ggez/pull/2).
