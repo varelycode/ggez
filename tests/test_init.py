@@ -330,7 +330,7 @@ class InitTests(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         rules = (self.root / 'AGENTS.md').read_text()
-        for required in ('Slice and Outcome', 'Verified', 'Unverified', 'usage.jsonl',
+        for required in ('Goal, Why now, and User-visible result', 'Verified', 'Unverified', 'usage.jsonl',
                          'brief.md', 'tasks.md', 'fresh approval', 'live signal', 'Result',
                          'ggez revise brief', 'ggez revise tasks', 'ggez check'):
             self.assertIn(required, rules)

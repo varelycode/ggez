@@ -25,7 +25,7 @@ LEGACY_TEMPLATES = ('evidence.md', 'review.md')
 BUNDLE = Path(__file__).resolve().parents[1] / 'templates'
 MANIFEST = '.ggez/install.json'
 MANIFEST_VERSION = 2
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 
 
 # Revision identities
@@ -396,7 +396,7 @@ def init_project(args):
             print('Cancelled; no files changed. Use --yes after reviewing the preview.')
             return 0
     apply_init(root, before, desired)
-    print('Initialized. Start a blank Brief from .ggez/templates/prd.md; fill Slice, Outcome, and Context yourself.')
+    print('Initialized. Start a blank Brief from .ggez/templates/prd.md; fill Outcome and Context yourself.')
     return 0
 
 
@@ -520,7 +520,7 @@ def print_handoff(path):
     print('Loop: fill Brief → record and approve revisions → build and test → accept the outcome.')
     print('\nCopy into Codex, Cursor, or Claude:')
     print('Read AGENTS.md and ' + str(path / 'brief.md') + '. '
-          'I fill Slice and Outcome; never fill those required sections for me. '
+          'I fill Goal, Why now, and User-visible result; never fill those required Outcome fields for me. '
           'I also provide the Context sources or exact no-context statement. '
           'Before preparing tasks, read the direct sources in Context. Do not load references '
           'found inside them unless the work requires it. Record the completed Brief with '

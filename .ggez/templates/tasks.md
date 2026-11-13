@@ -31,7 +31,7 @@
   Category: setup
   Complexity: low
 
-  - [ ] 1. Read the Brief and identify required setup: Read features/<feature-id>/brief.md. Use its Prerequisites field; record only relevant tools, services, environment variable names, and test data.
+  - [ ] 1. Read the Brief and identify required setup: Read features/<feature-id>/brief.md and its direct Context. Derive setup from the approved Outcome, Scope, Safety, and codebase; record only relevant tools, services, environment variable names, and test data.
   - [ ] 2. Verify: prerequisites: {{List exact safe checks and their expected results; record unavailable access without exposing secret values}}
 
   </details>

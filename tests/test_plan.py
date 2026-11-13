@@ -34,8 +34,16 @@ class PlanTests(unittest.TestCase):
             '# [Feature name] — Brief', '# Login settings — Brief', 1)
         self.assertEqual(brief.read_text(), expected)
         self.assertEqual(list(brief.parent.iterdir()), [brief])
-        self.assertIn('## Context — **Required**', brief.read_text())
-        self.assertIn('[Path or URL]', brief.read_text())
+        text = brief.read_text()
+        self.assertIn('## Context — **Required**', text)
+        self.assertIn('[Path or URL]', text)
+        self.assertIn('**Why now:**', text)
+        self.assertIn('**User-visible result:**', text)
+        self.assertIn('**Example — Optional:**', text)
+        self.assertIn('**Stop conditions:**', text)
+        for removed in ('## Slice', '**Status:**', '**Owner:**', '**Target cycle:**',
+                        '**Data and systems touched:**', '**Prerequisites:**', '## Related notes'):
+            self.assertNotIn(removed, text)
         for required in ('Codex', 'Cursor', 'Claude', 'Verified', 'Unverified',
                          'never fill', 'approve', 'Stop on failures', 'ggez revise brief',
                          'ggez revise tasks', 'ggez check', str(brief)):
